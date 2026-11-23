@@ -43,6 +43,8 @@ jobs:
 
       - name: Build ${{ matrix.platform }} installer
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
           npm run ${{ matrix.script }} 2>&1 | tee build-output.log
