@@ -3,8 +3,8 @@
 一个**完全开源（MIT）**、从零实现的桌面标签设计与批量打印工具。采用现代扁平化 Ribbon 界面，支持变量数据绑定、条码工具、标签文件导入与 TSPL 打印。用于仓储、零售、制造、跨境、价签等标签场景。
 
 **仓库地址**：
-- Gitee：https://gitee.com/liuwei9559/labelworks
-- GitHub：https://github.com/eced-cn/LabelWorks
+- Gitee：https://gitee.com/liuwei9559/LabelGuestXTC
+- GitHub：https://github.com/eced-cn/LabelGuestXTC
 
 > 本项目是独立编写的干净室（clean-room）实现，不包含、不复制任何商业软件的源代码、界面素材或私有数据格式。
 >
@@ -18,11 +18,11 @@
 
 | 平台 | 下载地址 |
 |------|----------|
-| Windows | [安装包 .exe](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-Setup-4.4.0.exe) · [国内镜像](https://gitee.com/liuwei9559/labelworks/releases/download/v4.3.2/LabelWorks-Setup-4.3.2.exe) |
-| macOS | [Apple 芯片 .dmg](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-4.4.0-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-4.4.0-x64.dmg) |
-| Linux | [AppImage](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-4.4.0-x86_64.AppImage) · [.deb](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-4.4.0-amd64.deb) |
+| Windows | [安装包 .exe](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.0/LabelGuestXTC-Setup-4.4.0.exe) · [国内镜像](https://gitee.com/liuwei9559/LabelGuestXTC/releases/download/v4.3.2/LabelWorks-Setup-4.3.2.exe) |
+| macOS | [Apple 芯片 .dmg](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.0/LabelGuestXTC-4.4.0-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.0/LabelGuestXTC-4.4.0-x64.dmg) |
+| Linux | [AppImage](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.0/LabelGuestXTC-4.4.0-x86_64.AppImage) · [.deb](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.0/LabelGuestXTC-4.4.0-amd64.deb) |
 
-全部版本见 [Releases 页面](https://github.com/eced-cn/LabelWorks/releases/tag/v4.4.0)。
+全部版本见 [Releases 页面](https://github.com/eced-cn/LabelGuestXTC/releases/tag/v4.4.0)。
 
 ---
 
