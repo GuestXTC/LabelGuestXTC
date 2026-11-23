@@ -1,10 +1,10 @@
 # LabelWorks — 标签设计与打印工作台
 
-[![Build LabelWorks](https://github.com/LabelWorks/labelworks/actions/workflows/build.yml/badge.svg)](https://github.com/LabelWorks/labelworks/actions/workflows/build.yml)
-
 一个**完全开源（MIT）**、从零实现的桌面标签设计与批量打印工具。采用现代扁平化 Ribbon 界面，支持变量数据绑定、条码工具、.ddl 标签文件导入与 TSPL 打印。用于仓储、零售、制造、跨境、价签等标签场景。
 
-**仓库地址**：https://github.com/LabelWorks/labelworks
+**仓库地址**：
+- Gitee：https://gitee.com/YOUR_GITEE_NAME/labelworks
+- GitHub：https://github.com/LabelWorks/labelworks
 
 > 本项目是独立编写的干净室（clean-room）实现，不包含、不复制任何商业软件的源代码、界面素材或私有数据格式。
 >
@@ -148,7 +148,7 @@ npm run dist:linux   # Linux → .AppImage + .deb
 npm run dist:dir
 ```
 
-**CI 自动构建**：GitHub Actions 在推送 `v*` 标签或手动触发时，自动在 Windows/macOS/Linux 三个 runner 上构建，并把安装包作为 artifacts 上传；打标签时同时创建 GitHub Release。见 `.github/workflows/build.yml`。
+**CI 自动构建**：GitHub Actions 在推送 `v*` 标签或手动触发时，自动在 Windows/macOS/Linux 三个 runner 上构建，并把安装包作为 artifacts 上传；打标签时同时创建 GitHub Release。见 `.github/workflows/build.yml`。Gitee 仓库作为国内镜像与下载入口，CI 在 GitHub 侧运行。
 
 ---
 
