@@ -53,6 +53,16 @@ jobs:
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             tail -80 build-output.log >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "::group::Build error output (${{ matrix.platform }})"
+            tail -40 build-output.log
+            echo "::endgroup::"
+            while IFS= read -r line; do
+              case "$line" in
+                *⨯*|*Error:*|*"error "*|*ERR_*|*"failed"*)
+                  echo "::error::${line}"
+                  ;;
+              esac
+            done < <(tail -60 build-output.log | tr -d '\r')
           fi
           exit "$EXIT"
 
