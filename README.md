@@ -4,7 +4,7 @@
 
 **仓库地址**：
 - Gitee：https://gitee.com/liuwei9559/labelworks
-- GitHub：https://github.com/LabelWorks/labelworks
+- GitHub：https://github.com/LabelWorks/LabelWorks
 
 > 本项目是独立编写的干净室（clean-room）实现，不包含、不复制任何商业软件的源代码、界面素材或私有数据格式。
 >
