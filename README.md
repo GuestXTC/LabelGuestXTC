@@ -18,11 +18,11 @@
 
 | 平台 | 下载地址 |
 |------|----------|
-| Windows | [安装包 .exe](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-Setup-4.3.2.exe) · [Gitee 镜像](https://gitee.com/liuwei9559/labelworks/releases/download/v4.3.2/LabelWorks-Setup-4.3.2.exe) |
-| macOS | [Apple 芯片 .dmg](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-4.3.2-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-4.3.2-x64.dmg) |
-| Linux | [AppImage](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-4.3.2-x86_64.AppImage) · [.deb](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-4.3.2-amd64.deb) |
+| Windows | [安装包 .exe](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-Setup-4.4.0.exe) · [国内镜像](https://gitee.com/liuwei9559/labelworks/releases/download/v4.3.2/LabelWorks-Setup-4.3.2.exe) |
+| macOS | [Apple 芯片 .dmg](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-4.4.0-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-4.4.0-x64.dmg) |
+| Linux | [AppImage](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-4.4.0-x86_64.AppImage) · [.deb](https://github.com/eced-cn/LabelWorks/releases/download/v4.4.0/LabelGuestXTC-4.4.0-amd64.deb) |
 
-全部版本见 [Releases 页面](https://github.com/eced-cn/LabelWorks/releases/tag/v4.3.2)。
+全部版本见 [Releases 页面](https://github.com/eced-cn/LabelWorks/releases/tag/v4.4.0)。
 
 ---
 
