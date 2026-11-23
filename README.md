@@ -14,6 +14,16 @@
 
 > **关于本项目**：本软件全程由 AI 制作，无一行人工代码，且不再更新。有需要的朋友可以自行借助 AI 修改后使用。
 
+## 下载
+
+| 平台 | 下载地址 |
+|------|----------|
+| Windows | [安装包 .exe](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-Setup-4.3.2.exe) · [Gitee 镜像](https://gitee.com/liuwei9559/labelworks/releases/download/v4.3.2/LabelWorks-Setup-4.3.2.exe) |
+| macOS | [Apple 芯片 .dmg](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-4.3.2-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-4.3.2-x64.dmg) |
+| Linux | [AppImage](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-4.3.2-x86_64.AppImage) · [.deb](https://github.com/eced-cn/LabelWorks/releases/download/v4.3.2/LabelWorks-4.3.2-amd64.deb) |
+
+全部版本见 [Releases 页面](https://github.com/eced-cn/LabelWorks/releases/tag/v4.3.2)。
+
 ---
 
 ## 功能
