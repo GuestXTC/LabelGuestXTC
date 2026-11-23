@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs (all historical release dirs + future dist)
+release/
+release-*/
+dist/
+build/
+*.blockmap
+
+# Build logs
+build-*.log
+*.log
+
+# Electron / OS temp
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Local config with possible secrets
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/

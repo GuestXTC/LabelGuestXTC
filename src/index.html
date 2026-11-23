@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LabelWorks - 标签设计与打印工作台</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<!-- ===== SVG icon sprite ===== -->
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+  <defs>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/></symbol>
+    <symbol id="i-import" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l3 3v15H4V3h1zm2 0v6h9V3M7 21v-7h10v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-saveas" viewBox="0 0 24 24"><path d="M5 3h11l3 3v6M4 3v18h9M8 3v6h7V3M15 21l6-6-3-3-6 6v3h3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 15h12v6H6v-6zm9 3h1v1h-1v-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5m5 5H10a6 6 0 000 12h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6m4-6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9 4l-2-1 1-2-2-2-2 1-1-2H9l-1 2-2-1-2 2 1 2-2 1v2l2 1-1 2 2 2 2-1 1 2h6l1-2 2 1 2-2-1-2 2-1v-2z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="2" fill="currentColor"/><path d="M4 18l5-5 4 4 3-3 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6V3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12h6M9 16h6M9 8h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 5h14M12 5v14M9 19h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-barcode" viewBox="0 0 24 24"><path d="M4 5v14M7 5v14M10 5v14M12 5v14M15 5v14M17 5v14M20 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 14h3v3h-3zM19 19h2M14 21h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-shape" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-triangle" viewBox="0 0 24 24"><path d="M12 3L21 20H3L12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-line" viewBox="0 0 24 24"><path d="M4 20L20 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 018 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 017-3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></symbol>
+    <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 6.2A10 10 0 0112 6c6.5 0 10 6 10 6a17 17 0 01-3 3.5M6.2 7.6A17 17 0 002 12s3.5 6 10 6a10 10 0 004-.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 4V2h6v2M9 10h6M9 14h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-al" viewBox="0 0 24 24"><path d="M4 3v18M8 7h12v4H8zM8 14h8v4H8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ac" viewBox="0 0 24 24"><path d="M12 3v18M6 7h12v4H6zM8 14h8v4H8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ar" viewBox="0 0 24 24"><path d="M20 3v18M4 7h12v4H4zM8 14h8v4H8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-aj" viewBox="0 0 24 24"><path d="M3 4h18M3 9h18M3 14h18M3 19h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-ad" viewBox="0 0 24 24"><path d="M4 4h16M4 9h16M4 14h16M4 19h16M2 3v18M22 3v18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-at" viewBox="0 0 24 24"><path d="M3 4h18M7 4v6H4V4m13 0v6h-3V4M10 12h4v8h-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-am" viewBox="0 0 24 24"><path d="M4 12h16M7 8v8M17 8v8M10 10h4v4h-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ab" viewBox="0 0 24 24"><path d="M3 20h18M7 4v16M17 4v16M10 8h4v5h-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-dh" viewBox="0 0 24 24"><path d="M3 5v14M21 5v14M7 9h10v6H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-dv" viewBox="0 0 24 24"><path d="M5 3h14M5 21h14M9 7v10h6V7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sw" viewBox="0 0 24 24"><rect x="3" y="6" width="8" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 9h8M13 15h8M19 6l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sh" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 13v8M15 13v8M6 19l3 3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-2-5.3M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ Title bar ============ -->
+<header class="app-header">
+  <div class="titlebar">
+    <div class="app-logo"><span class="logo-mark">L</span><b>LabelWorks</b></div>
+    <div class="tabbar">
+      <div class="tab-list" id="tabList"></div>
+      <button class="tab-add" id="btnNew" title="新建标签页 Ctrl+T"><svg class="i"><use href="#i-plus"/></svg></button>
+    </div>
+    <div class="titlebar-right">
+      <span id="versionTag" class="ver">v4.0</span>
+      <button class="win-btn" id="winMin" title="最小化">—</button>
+      <button class="win-btn" id="winMax" title="最大化">□</button>
+      <button class="win-btn close" id="winClose" title="关闭">✕</button>
+    </div>
+  </div>
+
+  <!-- ============ Ribbon tabs ============ -->
+  <nav class="ribbon-tabs" id="ribbonTabs">
+    <button class="ribbon-tab active" data-ribbon="home">开始</button>
+    <button class="ribbon-tab" data-ribbon="insert">插入</button>
+    <button class="ribbon-tab" data-ribbon="layout">页面布局</button>
+    <button class="ribbon-tab" data-ribbon="data">数据 / 变量</button>
+    <button class="ribbon-tab" data-ribbon="view">视图</button>
+    <button class="ribbon-tab" data-ribbon="file">文件</button>
+    <div class="ribbon-tabs-right">
+      <button class="ribbon-quick" id="btnSave" title="保存 Ctrl+S"><svg class="i"><use href="#i-save"/></svg></button>
+      <button class="ribbon-quick" id="undoBtn" title="撤销 Ctrl+Z"><svg class="i"><use href="#i-undo"/></svg></button>
+      <button class="ribbon-quick" id="redoBtn" title="重做 Ctrl+Y"><svg class="i"><use href="#i-redo"/></svg></button>
+    </div>
+  </nav>
+
+  <!-- ============ Ribbon panels ============ -->
+  <div class="ribbon-body">
+    <!-- HOME -->
+    <section class="ribbon-panel active" data-panel="home">
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <button class="ribbon-big" id="btnOpenDdl" title="打开标签文件 (.yy / .ddl / .json)"><svg class="i"><use href="#i-folder"/></svg><span>打开</span></button>
+          <div class="ribbon-stack">
+            <button class="ribbon-small" id="btnSaveAs" title="另存为"><svg class="i"><use href="#i-saveas"/></svg>另存为</button>
+            <button class="ribbon-small" id="btnImportJson" title="导入标签文件"><svg class="i"><use href="#i-import"/></svg>导入</button>
+          </div>
+        </div>
+        <div class="ribbon-group-label">文件</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <div class="ribbon-stack">
+            <button class="ribbon-small" id="dupBtn" title="复制 Ctrl+D"><svg class="i"><use href="#i-copy"/></svg>复制</button>
+            <button class="ribbon-small" id="abPaste" title="粘贴 Ctrl+V"><svg class="i"><use href="#i-paste"/></svg>粘贴</button>
+            <button class="ribbon-small" id="delBtn" title="删除 Delete"><svg class="i"><use href="#i-trash"/></svg>删除</button>
+          </div>
+        </div>
+        <div class="ribbon-group-label">剪贴板</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <select id="fbFont" class="ribbon-font" disabled><option>Arial</option><option>Microsoft YaHei</option><option>SimHei</option><option>SimSun</option><option>Consolas</option></select>
+          <input id="fbSize" class="ribbon-size" type="number" min="1" max="100" value="5" disabled title="字号(mm)" />
+          <div class="ribbon-row">
+            <button class="ribbon-mini" id="fbBold" disabled title="粗体"><b>B</b></button>
+            <button class="ribbon-mini" id="fbItalic" disabled title="斜体"><i>I</i></button>
+            <button class="ribbon-mini" id="fbUnderline" disabled title="下划线"><u>U</u></button>
+            <button class="ribbon-mini" id="fbStrike" disabled title="删除线"><s>S</s></button>
+            <button class="ribbon-mini" id="fbColor" disabled title="文字颜色">A<span class="fb-color-bar" id="fbColorBar"></span></button>
+          </div>
+          <div class="ribbon-row">
+            <button class="ribbon-mini" id="fbAlignLeft" disabled title="左对齐"><svg class="i"><use href="#i-al"/></svg></button>
+            <button class="ribbon-mini" id="fbAlignCenter" disabled title="居中"><svg class="i"><use href="#i-ac"/></svg></button>
+            <button class="ribbon-mini" id="fbAlignRight" disabled title="右对齐"><svg class="i"><use href="#i-ar"/></svg></button>
+            <button class="ribbon-mini" id="fbAlignJustify" disabled title="撑满"><svg class="i"><use href="#i-aj"/></svg></button>
+            <button class="ribbon-mini" id="fbAlignDistribute" disabled title="平铺"><svg class="i"><use href="#i-ad"/></svg></button>
+          </div>
+        </div>
+        <div class="ribbon-group-label">字体 · 对齐</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <div class="ribbon-row">
+            <button class="ab-btn" data-align="left" title="左对齐"><svg class="i"><use href="#i-al"/></svg></button>
+            <button class="ab-btn" data-align="hcenter" title="水平居中"><svg class="i"><use href="#i-ac"/></svg></button>
+            <button class="ab-btn" data-align="right" title="右对齐"><svg class="i"><use href="#i-ar"/></svg></button>
+            <button class="ab-btn" data-align="top" title="顶对齐"><svg class="i"><use href="#i-at"/></svg></button>
+            <button class="ab-btn" data-align="vcenter" title="垂直居中"><svg class="i"><use href="#i-am"/></svg></button>
+            <button class="ab-btn" data-align="bottom" title="底对齐"><svg class="i"><use href="#i-ab"/></svg></button>
+          </div>
+          <div class="ribbon-row">
+            <button class="ab-btn" data-align="distH" title="水平等距"><svg class="i"><use href="#i-dh"/></svg></button>
+            <button class="ab-btn" data-align="distV" title="垂直等距"><svg class="i"><use href="#i-dv"/></svg></button>
+            <button class="ab-btn text" data-align="sameW" title="统一宽度">同宽</button>
+            <button class="ab-btn text" data-align="sameH" title="统一高度">同高</button>
+            <button class="ab-btn text" data-align="sameSize" title="统一大小">同尺寸</button>
+          </div>
+        </div>
+        <div class="ribbon-group-label">排列</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <button class="ribbon-big primary" id="btnPrint" title="打印中心"><svg class="i"><use href="#i-print"/></svg><span>打印</span></button>
+        </div>
+        <div class="ribbon-group-label">输出</div>
+      </div>
+    </section>
+
+    <!-- INSERT -->
+    <section class="ribbon-panel" data-panel="insert">
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <button class="ribbon-big" data-add="text" title="文本"><svg class="i"><use href="#i-text"/></svg><span>文本</span></button>
+          <div class="ribbon-stack">
+            <button class="ribbon-small" data-add="qrcode"><svg class="i"><use href="#i-qr"/></svg>二维码</button>
+            <button class="ribbon-small" data-add="image"><svg class="i"><use href="#i-image"/></svg>图片</button>
+            <button class="ribbon-small" data-add="date"><svg class="i"><use href="#i-clock"/></svg>日期</button>
+          </div>
+        </div>
+        <div class="ribbon-group-label">基础元素</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <div class="eb-wrap">
+            <button class="ribbon-big" id="btnBarcodeMenu" title="一维码（点击选择格式）"><svg class="i"><use href="#i-barcode"/></svg><span>一维码</span></button>
+            <div class="dropdown eb-menu" id="barcodeMenu" hidden>
+              <button data-add="barcode" data-format="CODE128">CODE_128</button>
+              <button data-add="barcode" data-format="CODE39">CODE_39</button>
+              <button data-add="barcode" data-format="EAN13">EAN_13</button>
+              <button data-add="barcode" data-format="EAN8">EAN_8</button>
+              <button data-add="barcode" data-format="ITF14">ITF-14</button>
+              <button data-add="barcode" data-format="CODABAR">CODABAR</button>
+            </div>
+          </div>
+        </div>
+        <div class="ribbon-group-label">一维码</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <button class="ribbon-big" data-add="line" title="线条"><svg class="i"><use href="#i-line"/></svg><span>线条</span></button>
+          <button class="ribbon-big" data-add="rect" title="矩形"><svg class="i"><use href="#i-shape"/></svg><span>矩形</span></button>
+          <button class="ribbon-big" data-add="ellipse" title="椭圆"><svg class="i"><use href="#i-ellipse"/></svg><span>椭圆</span></button>
+          <button class="ribbon-big" data-add="triangle" title="三角形"><svg class="i"><use href="#i-triangle"/></svg><span>三角形</span></button>
+          <button class="ribbon-big" data-add="table" title="表格"><svg class="i"><use href="#i-table"/></svg><span>表格</span></button>
+        </div>
+        <div class="ribbon-group-label">图形 · 表格</div>
+      </div>
+    </section>
+
+    <!-- LAYOUT -->
+    <section class="ribbon-panel" data-panel="layout">
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <label class="ribbon-field">宽 <input id="docW" type="number" min="10" max="500" step="1" value="100" /> mm</label>
+          <label class="ribbon-field">高 <input id="docH" type="number" min="10" max="500" step="1" value="60" /> mm</label>
+          <button class="ribbon-small" id="btnLabelSetup"><svg class="i"><use href="#i-gear"/></svg>标签设置</button>
+        </div>
+        <div class="ribbon-group-label">标签尺寸</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <label class="chk"><input type="checkbox" id="showGrid" /> 显示网格</label>
+          <input id="gridSize" class="ribbon-size" type="number" value="5" min="1" max="50" title="网格间距(mm)" /> <span class="ribbon-unit">mm</span>
+          <label class="chk"><input type="checkbox" id="showGuides" checked /> 辅助线</label>
+        </div>
+        <div class="ribbon-group-label">参考</div>
+      </div>
+    </section>
+
+    <!-- DATA -->
+    <section class="ribbon-panel" data-panel="data">
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <button class="ribbon-big" id="btnImportData" title="导入 Excel / CSV / TXT"><svg class="i"><use href="#i-db"/></svg><span>导入数据</span></button>
+          <div class="ribbon-stack">
+            <button class="ribbon-small" id="btnBatchClear"><svg class="i"><use href="#i-trash"/></svg>清空数据</button>
+          </div>
+        </div>
+        <div class="ribbon-group-label">数据源</div>
+      </div>
+      <div class="ribbon-group wide">
+        <div class="ribbon-group-body ribbon-hintbox">
+          <b>变量绑定</b>
+          <span>在文本或条码内容里写 <code>{列名}</code>、<code>{序列号}</code>、<code>{日期}</code>，打印时自动替换为数据表中的值。</span>
+        </div>
+        <div class="ribbon-group-label">用法</div>
+      </div>
+    </section>
+
+    <!-- VIEW -->
+    <section class="ribbon-panel" data-panel="view">
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <div class="ribbon-row">
+            <button class="mini-btn" id="zoomOut" title="缩小">−</button>
+            <span id="zoomLabel" class="zoom-label">100%</span>
+            <button class="mini-btn" id="zoomIn" title="放大">＋</button>
+            <button class="mini-btn fit" id="zoomFit">适应</button>
+          </div>
+        </div>
+        <div class="ribbon-group-label">缩放</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <div class="ribbon-stack">
+            <button class="ribbon-small" id="btnExportPng"><svg class="i"><use href="#i-image"/></svg>导出 PNG</button>
+            <button class="ribbon-small" id="btnExportPdf"><svg class="i"><use href="#i-pdf"/></svg>导出 PDF</button>
+          </div>
+        </div>
+        <div class="ribbon-group-label">导出</div>
+      </div>
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <button class="ribbon-big" id="btnLayers" title="图层面板"><svg class="i"><use href="#i-layers"/></svg><span>图层</span></button>
+          <span class="ribbon-selinfo" id="abSelInfo">选中 0 个</span>
+        </div>
+        <div class="ribbon-group-label">图层 · 状态</div>
+      </div>
+    </section>
+
+    <!-- FILE -->
+    <section class="ribbon-panel" data-panel="file">
+      <div class="ribbon-group">
+        <div class="ribbon-group-body">
+          <div class="menu-wrap">
+            <button class="ribbon-big" id="btnFileMenu" title="文件菜单"><svg class="i"><use href="#i-folder"/></svg><span>文件</span></button>
+            <div class="dropdown file-menu" id="fileMenu" hidden>
+              <button data-act="new"><span>新建</span><kbd>Ctrl+N</kbd></button>
+              <button data-act="open"><span>打开...</span><kbd>Ctrl+O</kbd></button>
+              <button data-act="save"><span>保存</span><kbd>Ctrl+S</kbd></button>
+              <button data-act="saveas"><span>另存为...</span><kbd>Ctrl+Shift+S</kbd></button>
+              <div class="dd-sep"></div>
+              <button data-act="batch"><span>批量打印</span><kbd></kbd></button>
+              <button data-act="print"><span>打印...</span><kbd>Ctrl+P</kbd></button>
+              <div class="dd-sep"></div>
+              <button data-act="exit"><span>退出</span><kbd></kbd></button>
+            </div>
+          </div>
+        </div>
+        <div class="ribbon-group-label">文件操作</div>
+      </div>
+      <div class="ribbon-group wide">
+        <div class="ribbon-group-body ribbon-hintbox">
+          <b>LabelWorks</b>
+          <span>现代标签设计与打印工作台 · 支持变量数据、条码、.ddl 标签文件导入与 TSPL 打印。</span>
+        </div>
+        <div class="ribbon-group-label">关于</div>
+      </div>
+    </section>
+  </div>
+</header>
+
+<div class="workspace">
+  <main class="stage" id="stage">
+    <div class="ruler-corner"></div>
+    <div class="ruler-h" id="rulerH"><canvas id="rulerHCanvas"></canvas></div>
+    <div class="ruler-v" id="rulerV"><canvas id="rulerVCanvas"></canvas></div>
+    <div class="canvas-scroll" id="canvasScroll">
+      <div class="canvas-wrap" id="canvasWrap"><canvas id="labelCanvas"></canvas></div>
+      <div class="welcome-empty" id="welcomeEmpty">
+        <div class="we-card">
+          <div class="we-icon"><svg class="i"><use href="#i-text"/></svg></div>
+          <div class="we-title">开始设计标签</div>
+          <div class="we-sub">打开一个标签文件，或新建一个空白标签</div>
+          <div class="we-actions">
+            <button id="weOpen" class="we-btn primary"><svg class="i"><use href="#i-folder"/></svg>打开标签</button>
+            <button id="weNew" class="we-btn"><svg class="i"><use href="#i-plus"/></svg>新建标签</button>
+          </div>
+          <div class="we-tip">也可以直接把 .ddl / .json 文件拖进窗口</div>
+        </div>
+      </div>
+    </div>
+    <div class="stage-status">
+      <span class="st-item" id="statusSize">画布 100 × 60 mm</span><span class="status-sep"></span>
+      <span class="st-item" id="statusElements">0 个元素</span><span class="status-sep"></span>
+      <span class="st-item" id="cursorInfo">就绪</span>
+      <span class="st-right"><span id="statusDb">数据库：0 条</span></span>
+    </div>
+  </main>
+
+  <aside class="inspector" id="inspector">
+    <div class="inspector-head">属性 <span id="propTypeLabel"></span></div>
+    <div id="propsEmpty" class="props-empty">
+      <div class="pe-illustration">
+        <svg viewBox="0 0 90 70" width="90" height="70"><rect x="8" y="8" width="74" height="50" rx="4" fill="none" stroke="#c9d3e0" stroke-width="2"/><rect x="14" y="14" width="62" height="38" fill="#f2f6fb"/><path d="M20 44 L34 30 L44 38 L56 24 L70 44 Z" fill="#dfe8f3" stroke="#bcc9da" stroke-width="1"/><circle cx="30" cy="24" r="4" fill="#dfe8f3" stroke="#bcc9da"/><path d="M34 62 h22" stroke="#c9d3e0" stroke-width="2"/></svg>
+      </div>
+      <div class="pe-title">未选定项目</div>
+      <div class="pe-sub">选择设计面上的一个或多个</div>
+    </div>
+    <div id="props" class="props" hidden></div>
+    <div id="layersPanel" class="layers-panel" hidden>
+      <div class="inspector-head">图层</div>
+      <div id="layerList" class="layer-list"></div>
+    </div>
+  </aside>
+</div>
+
+<section class="batch collapsed" id="batchPanel">
+  <div class="batch-head">
+    <button class="batch-toggle" id="btnBatchToggle" title="展开/收起">▴</button>
+    <div class="batch-title"><svg class="i"><use href="#i-db"/></svg> 数据库</div>
+    <div class="batch-actions">
+      <button id="btnBatchOpen" class="tb-btn">导入数据文件</button>
+      <button id="btnBatchClear" class="tb-btn">清空</button>
+      <span class="batch-count" id="batchCount">0 条记录</span>
+      <label class="chk"><input type="checkbox" id="batchEnabled" /> 启用批量(用字段值替换 {字段名})</label>
+    </div>
+  </div>
+  <div class="batch-body">
+    <div class="batch-table-wrap"><table id="batchTable"><thead></thead><tbody></tbody></table></div>
+    <div class="batch-side">
+      <div class="side-label">动态数据源</div>
+      <label class="chk"><input type="checkbox" id="useSerial" /> 序列号</label>
+      <div class="serial-row">
+        <input id="serialStart" type="number" value="1" placeholder="起始" />
+        <input id="serialStep" type="number" value="1" placeholder="步长" />
+        <input id="serialPad" type="number" value="0" placeholder="位数" />
+      </div>
+      <label class="chk"><input type="checkbox" id="useDate" /> 当前日期</label>
+      <input id="dateFormat" type="text" value="YYYY-MM-DD" placeholder="YYYY-MM-DD" />
+      <p class="side-tip">在文本/条码内容里写 <code>{列名}</code>、<code>{序列号}</code>、<code>{日期}</code> 即可批量替换。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Print center ============ -->
+<div class="modal-mask" id="printModal" hidden>
+  <div class="print-center">
+    <div class="pc-head">
+      <div class="pc-title"><svg class="i"><use href="#i-print"/></svg><b>打印</b></div>
+      <button class="modal-x" id="btnClosePrint" title="关闭"><svg class="i"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="pc-body">
+      <div class="pc-settings">
+        <div class="pc-sec-title"><svg class="i"><use href="#i-print"/></svg>打印设置</div>
+        <div class="pc-group">
+          <label class="pc-row"><span>打印机</span>
+            <span class="pc-inline"><select id="printerSelect"><option value="">（未选择）</option></select>
+            <button id="btnRefreshPrinters" class="mini-btn" title="刷新列表"><svg class="i"><use href="#i-refresh"/></svg></button></span>
+          </label>
+          <label class="pc-row"><span>纸张尺寸</span><span class="pc-inline pc-paper">
+            <input id="printGapW" type="number" value="50" step="1" /><em>×</em>
+            <input id="printGapH" type="number" value="40" step="1" /><em>mm</em>
+          </span></label>
+          <label class="pc-row"><span>打印份数</span>
+            <span class="stepper"><button type="button" id="copiesMinus">−</button><input id="printCopies" type="number" value="1" min="1" /><button type="button" id="copiesPlus">＋</button></span>
+          </label>
+        </div>
+
+        <div class="pc-status" id="paperHint">按纸张 50×40mm 出图，画布自动缩放为 1 张</div>
+
+        <details class="pc-advanced" id="pcAdvanced">
+          <summary><span class="adv-label">高级设置</span> <span class="adv-sub">间隙 / 浓度 / 校正</span></summary>
+          <div class="pc-adv-body">
+            <label class="pc-row"><span>间隙 (mm)</span><input id="printGap" type="number" value="3" step="0.5" /></label>
+            <label class="pc-row"><span>纸张类型</span>
+              <select id="printPaperMode">
+                <option value="gap">间隙纸（标准）</option>
+                <option value="continuous">连续纸（无间隙）</option>
+                <option value="detect">自动校准间隙</option>
+              </select>
+            </label>
+            <label class="pc-row"><span>停止位偏移</span><input id="printOffset" type="number" value="0" step="1" /></label>
+            <label class="pc-row"><span>浓度 (0-15)</span><input id="printDensity" type="number" value="8" min="0" max="15" /></label>
+            <label class="pc-row chk-row"><span>用画布尺寸</span><input type="checkbox" id="printSyncPaper" /></label>
+            <div class="pc-divider"></div>
+            <label class="pc-row chk-row"><span>黑白反转</span><input type="checkbox" id="printInvert" /></label>
+            <label class="pc-row chk-row"><span>左右镜像</span><input type="checkbox" id="printMirror" /></label>
+            <label class="pc-row"><span>旋转</span><select id="printRotate"><option value="0">0°</option><option value="180">180°</option></select></label>
+            <p class="pc-tip">多走空白纸：选「自动校准间隙」→ 打印测试页。</p>
+          </div>
+        </details>
+
+        <div class="pc-jobinfo" id="pcJobInfo">1 张标签</div>
+      </div>
+
+      <div class="pc-preview">
+        <div class="pcp-head">
+          <div class="pcp-title"><svg class="i"><use href="#i-image"/></svg>预览 <small id="pcPreviewInfo">203 DPI</small></div>
+          <span class="pcp-zoom">
+            <button id="pcZoomOut" class="mini-btn" title="缩小">−</button>
+            <span id="pcZoomLabel">100%</span>
+            <button id="pcZoomIn" class="mini-btn" title="放大">＋</button>
+            <button class="mini-btn fit" id="pcZoomFit" title="适应窗口">适应</button>
+          </span>
+        </div>
+        <div class="pcp-canvas-wrap" id="pcCanvasWrap">
+          <div class="paper-hint" id="paperSizeTag">50 × 40 mm</div>
+          <canvas id="pcCanvas"></canvas>
+        </div>
+        <div class="pcp-foot">
+          <span class="pcp-info" id="pcPageInfo">标签 1 / 1 · 单张预览</span>
+        </div>
+      </div>
+    </div>
+    <div class="pc-foot">
+      <button id="btnPcTest" class="tb-btn ghost"><svg class="i"><use href="#i-refresh"/></svg>打印测试页</button>
+      <div class="pc-actions">
+        <button id="btnPcCancel" class="tb-btn">取消</button>
+        <button id="btnPcPrint" class="tb-btn print"><svg class="i"><use href="#i-print"/></svg>开始打印</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="js/app.js"></script>
+</body>
+</html>

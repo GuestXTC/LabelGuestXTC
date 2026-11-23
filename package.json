@@ -1,0 +1,79 @@
+{
+  "name": "labelworks",
+  "version": "4.3.2",
+  "description": "LabelWorks - modern label designer with variable data, barcode tools and native TSPL printing (MIT).",
+  "main": "main.js",
+  "author": "LabelWorks contributors",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "dist:dir": "electron-builder --win --x64 --dir",
+    "dist:win": "electron-builder --win --x64",
+    "dist:mac": "electron-builder --mac --x64 --arm64",
+    "dist:linux": "electron-builder --linux --x64",
+    "dist:all": "electron-builder --win --mac --linux --x64"
+  },
+  "build": {
+    "appId": "com.labelworks.designer",
+    "productName": "LabelWorks",
+    "copyright": "Copyright © LabelWorks contributors",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": false,
+      "artifactName": "LabelWorks-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "LabelWorks-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "artifactName": "LabelWorks-${version}-${arch}.${ext}"
+    },
+    "fileAssociations": [
+      {
+        "ext": "yy",
+        "name": "LabelWorks File",
+        "description": "LabelWorks 标签文件"
+      },
+      {
+        "ext": "ddl",
+        "name": "Label File (.ddl)",
+        "description": ".ddl 标签文件"
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "jsbarcode": "^3.11.6",
+    "qrcode": "^1.5.4",
+    "xlsx": "^0.18.5",
+    "jspdf": "^2.5.2"
+  }
+}
