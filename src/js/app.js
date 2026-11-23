@@ -363,7 +363,7 @@ function drawText(c, el, opt) {
   c.textBaseline = 'middle';
   // We always draw with textAlign='left' and position glyphs by hand. Using
   // canvas textAlign together with fillText's maxWidth makes Chromium compress
-  // and re-anchor glyphs, which previously broke centering on DLabel imports.
+  // and re-anchor glyphs, which previously broke centering on file imports.
   c.textAlign = 'left';
   const align = ['center', 'right', 'justify', 'distribute'].indexOf(el.align) >= 0 ? el.align : 'left';
   const ls = el.letterSpacing || 0; // mm per char
@@ -1900,8 +1900,8 @@ function normalizeDoc(d) {
   return d;
 }
 
-/* ---------------- DDL serializer (our doc -> DLabel XML) ----------------
- * Produces a .ddl file that DLabel can open. Reverse of parseDDL below.
+/* ---------------- DDL serializer (our doc -> .ddl XML) ----------------
+ * Produces a .ddl file in the common XML layout. Reverse of parseDDL below.
  */
 function xmlEsc(v) {
   return String(v == null ? '' : v)
@@ -1924,7 +1924,7 @@ function serializeToDDL(targetDoc) {
 
     if (e.type === 'text') {
       // Inverse of the import map: 0=left, 2=right, 3=justify, 4=center.
-      // "distribute" has no dedicated DLabel code, so it is saved as 3.
+      // "distribute" has no dedicated code here, so it is saved as 3.
       const alignMap = { left: '0', center: '4', right: '2', justify: '3', distribute: '3' };
       const tval = e.dynamic === 'date' ? computeDynamicDate(e) : String(e.text || '');
       L.push(`   <drawobj${base}${attr('fontfamily', e.fontFamily || '微软雅黑')}${attr('fontsize', Math.round((e.fontSize || 5) / 0.35))}${attr('fontbold', !!e.bold)}${attr('fontitalic', !!e.italic)}${attr('fontunderline', !!e.underline)}${attr('fontstrikeout', !!e.strike)}${attr('fontletterspacing', e.letterSpacing || 0)}${attr('alignment', alignMap[e.align] || '4')}${attr('itemtype', '5')}${attr('ellipse', false)}${attr('blackground', !!e.inverse)}${attr('currentdata', '1')}${attr('datasource', '0')}${attr('hormirror', false)}${attr('linespacing', e.lineSpacing || 0)}${attr('stretch', 100)}${attr('textlength', 0)}${attr('startposition', 0)}${attr('interval', 1)}>`);
@@ -1939,14 +1939,14 @@ function serializeToDDL(targetDoc) {
       const b64 = (e.src || '').startsWith('data:') ? (e.src.split(',')[1] || '') : '';
       L.push(`   <drawobj${base}${attr('itemtype', '6')}${attr('image', (e.src || '').startsWith('data:') ? '' : (e.src || ''))}${attr('base64', b64)}${attr('embeddocument', b64 ? 'true' : 'false')}${attr('fill', false)}${attr('imgpath', '')}${attr('imgurl', '')}></drawobj>`);
     } else if (e.type === 'rect' || e.type === 'ellipse' || e.type === 'triangle') {
-      // DLabel shapes: itemtype 2, radius>0 = ellipse. Triangle has no native
-      // DLabel type — save as a plain rect (DLabel will show a rectangle).
+      // Shapes: itemtype 2, radius>0 = ellipse. Triangle has no native
+      // type here — save as a plain rect (shown as a rectangle).
       L.push(`   <drawobj${base}${attr('itemtype', '2')}${attr('radius', e.type === 'ellipse' ? '1' : '0')}${attr('linetype', '0')}${attr('linewidth', (e.strokeWidth || 0.4) * 10)}${attr('pattern', '0')}></drawobj>`);
     } else if (e.type === 'line') {
       L.push(`   <drawobj${base}${attr('itemtype', '1')}${attr('linestartx', round(e.x))}${attr('linestarty', round(e.y))}${attr('linelength', round(Math.hypot(e.w, e.h)))}${attr('linedegree', round(Math.atan2(e.h, e.w) * 180 / Math.PI))}${attr('linetype', '0')}${attr('linewidth', (e.strokeWidth || 0.4) * 10)}></drawobj>`);
     } else if (e.type === 'table') {
       // Emit grid cells with merge spans (crossColumns/crossRows) and real
-      // per-column widths so DLabel opens it with the same layout.
+      // per-column widths so the same layout is preserved on reopen.
       const rows = Math.max(1, e.rows || 1), cols = Math.max(1, e.cols || 1);
       const { xs, ys } = tableEdges(e);
       const merges = tableMerges(e);
@@ -1981,8 +1981,8 @@ function serializeToDDL(targetDoc) {
   return L.join('\r\n');
 }
 
-/* ---------------- DDL parser (DLabel XML -> our doc) ---------------- */
-// Tolerant by design. Real DLabel files differ in encoding (UTF-8 / UTF-16,
+/* ---------------- DDL parser (.ddl XML -> our doc) ---------------- */
+// Tolerant by design. Real files differ in encoding (UTF-8 / UTF-16,
 // with or without BOM), tag casing and attribute naming. Any of those used to
 // make "打开 DDL" fail with a blank canvas while JSON import still worked.
 function cleanXmlText(xmlText) {
@@ -2029,7 +2029,7 @@ function parseDDL(xmlText) {
     if (p.bgcolor) out.background = p.bgcolor;
   }
 
-  // Match object nodes case-insensitively; some DLabel versions use other tags.
+  // Match object nodes case-insensitively; some versions use other tags.
   const OBJ_TAGS = ['drawobj', 'drawobject', 'labelobject', 'object', 'obj', 'item', 'element'];
   const objs = all.filter(n => OBJ_TAGS.indexOf(localName(n)) !== -1);
   const textValues = (node) => {
@@ -2067,8 +2067,8 @@ function parseDDL(xmlText) {
     const lineW = Math.max(0.2, num(g('linewidth', 'tablelinewidth'), 0.3) / 10);
 
     if (it === '5' || (it == null && vals.length)) {
-      // DLabel alignment codes seen in real files (0..4). 1 and 4 both render
-      // centered in the user's DLabel version; 3 is the rare "justify" value.
+      // Alignment codes seen in real files (0..4). 1 and 4 both render
+      // centered in common versions; 3 is the rare "justify" value.
       const alignMap = { '0': 'left', '1': 'center', '4': 'center', '2': 'right', '3': 'justify' };
       out.elements.push(Object.assign(common, {
         type: 'text', name: (vals[0] || '文本').slice(0, 12),
@@ -2123,7 +2123,7 @@ function parseDDL(xmlText) {
           const parsed = JSON.parse(fj);
           if (Array.isArray(parsed)) {
             // Derive per-column widths and per-row heights from real cell sizes
-            // (DLabel tables are usually NOT evenly spaced). This fixes the
+            // (tables are usually NOT evenly spaced). This fixes the
             // "table deformed" issue on import.
             const cw = new Array(cols).fill(0), rh = new Array(rows).fill(0);
             parsed.slice(0, rows).forEach((rowObj, r) => {
@@ -2144,7 +2144,7 @@ function parseDDL(xmlText) {
             const sumW = cw.reduce((a, b) => a + b, 0), sumH = rh.reduce((a, b) => a + b, 0);
             colW = sumW > 0 ? cw.map(w => (w > 0 ? w : 1)) : null;
             rowH = sumH > 0 ? rh.map(h => (h > 0 ? h : 1)) : null;
-            // de-duplicate merges (DLabel repeats spanned data)
+            // de-duplicate merges (spanned cells repeat data)
             const seen = new Set();
             merges = merges.filter(m => { const k = m.r + ',' + m.c + ',' + m.rs + ',' + m.cs; if (seen.has(k)) return false; seen.add(k); return true; });
           }
@@ -2172,7 +2172,7 @@ function parseDDL(xmlText) {
   return out;
 }
 
-// One content-based loader shared by BOTH "打开" and "导入": accepts DLabel
+// One content-based loader shared by BOTH "打开" and "导入": accepts .ddl
 // XML and our JSON, so the two buttons can never diverge again.
 function loadDocumentText(text, filePath) {
   const s = String(text == null ? '' : text).replace(/^\uFEFF/, '').replace(/^\s+/, '');
@@ -2191,7 +2191,7 @@ function loadFromOpenResult(r) {
   try {
     const res = loadDocumentText(r.text != null ? r.text : r.xml, r.path);
     // Use the real file name (without extension) as the document title instead
-    // of the generic "DLabel 导入" placeholder set by parseDDL.
+    // of the generic ".ddl import" placeholder set by parseDDL.
     const base = String(r.path || '').split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
     if (base) res.doc.name = base;
     applyDoc(res.doc, { path: r.path, type: res.type });

@@ -94,7 +94,7 @@ ipcMain.handle('win:maximize', () => {
 ipcMain.handle('win:close', () => { if (mainWindow) mainWindow.close(); });
 
 // ---- DDL / JSON files ----------------------------------------------------
-// Read a label file as text regardless of how DLabel saved it. DLabel files
+// Read a label file as text regardless of encoding/variant. Such files
 // are XML, but real-world files come as UTF-8 (with/without BOM), UTF-16 LE/BE
 // (with/without BOM) and occasionally GBK. Reading everything as 'utf8' was
 // the reason "open DDL" showed a blank canvas while JSON import worked.
@@ -376,7 +376,7 @@ function buildTsplCommands(opts) {
   } else {
     cmd('GAP ' + (gapMm != null ? gapMm : 3) + ' mm,0 mm');
   }
-  cmd('DIRECTION 0,0');           // forward feed, no mirror (matches DLabel rotate=0)
+  cmd('DIRECTION 0,0');           // forward feed, no mirror (rotate=0)
   cmd('DENSITY ' + Math.max(0, Math.min(15, density != null ? density : 8)));
   cmd('REFERENCE 0,0');
   if (offsetDot) cmd('OFFSET ' + Math.round(offsetDot) + ' dot'); // stop-position fine tune
