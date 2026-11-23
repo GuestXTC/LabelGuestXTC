@@ -56,6 +56,14 @@ jobs:
           fi
           exit "$EXIT"
 
+      - name: Upload build log (always, for diagnostics)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.platform }}
+          path: build-output.log
+          if-no-files-found: warn
+
       - name: Upload artifacts
         if: success()
         uses: actions/upload-artifact@v4
