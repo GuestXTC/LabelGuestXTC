@@ -2,6 +2,8 @@ name: Build LabelWorks
 
 on:
   push:
+    branches:
+      - master
     tags:
       - 'v*'
   workflow_dispatch:
@@ -27,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,9 +42,22 @@ jobs:
         run: npm ci
 
       - name: Build ${{ matrix.platform }} installer
-        run: npm run ${{ matrix.script }}
+        shell: bash
+        run: |
+          set +e
+          npm run ${{ matrix.script }} 2>&1 | tee build-output.log
+          EXIT=${PIPESTATUS[0]}
+          echo "BUILD_EXIT=$EXIT"
+          if [ "$EXIT" -ne 0 ]; then
+            echo "### Build failed on ${{ matrix.platform }} (exit $EXIT)" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            tail -80 build-output.log >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$EXIT"
 
       - name: Upload artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: LabelWorks-${{ matrix.platform }}
