@@ -1,12 +1,12 @@
 {
-  "name": "labelworks",
-  "version": "4.3.2",
-  "description": "LabelWorks - modern label designer with variable data, barcode tools and native TSPL printing (MIT).",
+  "name": "labelguestxtc",
+  "version": "4.4.0",
+  "description": "LabelGuestXTC - modern label designer with variable data, barcode tools and native TSPL printing (MIT).",
   "homepage": "https://gitee.com/liuwei9559/labelworks",
   "main": "main.js",
   "author": {
-    "name": "LabelWorks contributors",
-    "email": "labelworks@users.noreply.gitee.com"
+    "name": "LabelGuestXTC contributors",
+    "email": "labelguestxtc@users.noreply.gitee.com"
   },
   "license": "MIT",
   "scripts": {
@@ -19,9 +19,9 @@
     "dist:all": "electron-builder --win --mac --linux --x64"
   },
   "build": {
-    "appId": "com.labelworks.designer",
-    "productName": "LabelWorks",
-    "copyright": "Copyright © LabelWorks contributors",
+    "appId": "com.labelguestxtc.designer",
+    "productName": "LabelGuestXTC",
+    "copyright": "Copyright © LabelGuestXTC contributors",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -34,7 +34,7 @@
     "win": {
       "target": "nsis",
       "signAndEditExecutable": false,
-      "artifactName": "LabelWorks-Setup-${version}.${ext}"
+      "artifactName": "LabelGuestXTC-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -47,7 +47,7 @@
         "zip"
       ],
       "category": "public.app-category.productivity",
-      "artifactName": "LabelWorks-${version}-${arch}.${ext}"
+      "artifactName": "LabelGuestXTC-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": [
@@ -55,13 +55,13 @@
         "deb"
       ],
       "category": "Office",
-      "artifactName": "LabelWorks-${version}-${arch}.${ext}"
+      "artifactName": "LabelGuestXTC-${version}-${arch}.${ext}"
     },
     "fileAssociations": [
       {
         "ext": "yy",
-        "name": "LabelWorks File",
-        "description": "LabelWorks 标签文件"
+        "name": "LabelGuestXTC File",
+        "description": "LabelGuestXTC 标签文件"
       },
       {
         "ext": "ddl",

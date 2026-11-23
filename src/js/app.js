@@ -1,5 +1,5 @@
 /* =========================================================================
- * LabelWorks — renderer + editor
+ * LabelGuestXTC — renderer + editor
  * Fully self-contained, MIT licensed. Barcode/QR/PDF handled by open-source
  * libraries loaded from node_modules (bundled offline in the distributed app).
  * ========================================================================= */

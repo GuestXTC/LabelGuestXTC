@@ -1,4 +1,4 @@
-# LabelWorks — 标签设计与打印工作台
+# LabelGuestXTC — 标签设计与打印工作台
 
 一个**完全开源（MIT）**、从零实现的桌面标签设计与批量打印工具。采用现代扁平化 Ribbon 界面，支持变量数据绑定、条码工具、标签文件导入与 TSPL 打印。用于仓储、零售、制造、跨境、价签等标签场景。
 
@@ -144,11 +144,11 @@ npm run dist:linux   # Linux → .AppImage + .deb
 
 | 平台 | 产物 | 说明 |
 |------|------|------|
-| Windows | `LabelWorks-Setup-<版本>.exe` | NSIS 安装包，可自定义安装目录 |
-| macOS | `LabelWorks-<版本>-x64.dmg` / `-arm64.dmg` | 拖入 Applications 安装 |
-| Linux | `LabelWorks-<版本>-x64.AppImage` / `.deb` | 免安装执行文件 / Debian 包 |
+| Windows | `LabelGuestXTC-Setup-<版本>.exe` | NSIS 安装包，可自定义安装目录 |
+| macOS | `LabelGuestXTC-<版本>-x64.dmg` / `-arm64.dmg` | 拖入 Applications 安装 |
+| Linux | `LabelGuestXTC-<版本>-x64.AppImage` / `.deb` | 免安装执行文件 / Debian 包 |
 
-> **macOS 提示**：未签名的 dmg 首次打开需在「系统设置 → 隐私与安全性」点「仍要打开」，或用 `xattr -cr LabelWorks.app` 去除隔离属性。正式分发需 Apple 开发者账号签名并公证。
+> **macOS 提示**：未签名的 dmg 首次打开需在「系统设置 → 隐私与安全性」点「仍要打开」，或用 `xattr -cr LabelGuestXTC.app` 去除隔离属性。正式分发需 Apple 开发者账号签名并公证。
 >
 > **国内网络提示**：Windows 构建已设置 `signAndEditExecutable: false`（跳过 winCodeSign 下载，代价是 exe 用默认图标、未签名）。若 Electron 二进制下载失败，可设置镜像：
 > `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm run dist:win`
@@ -201,7 +201,7 @@ npm run dist:dir
 ## 目录结构
 
 ```
-labelworks/
+labelguestxtc/
 ├── main.js          Electron 主进程：窗口、对话框、文件系统、打印/PDF
 ├── preload.js       IPC 桥接
 ├── src/
@@ -217,6 +217,6 @@ labelworks/
 
 ## 许可证
 
-MIT © LabelWorks contributors。详见 [LICENSE](LICENSE)。
+MIT © LabelGuestXTC contributors。详见 [LICENSE](LICENSE)。
 
 第三方库各自的许可证见其 `node_modules/<包名>/LICENSE`：jsbarcode (MIT)、qrcode (MIT)、xlsx (Apache-2.0)、jspdf (MIT)。

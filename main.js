@@ -1,4 +1,4 @@
-// LabelWorks - Electron main process
+// LabelGuestXTC - Electron main process
 // Responsible for: app lifecycle, native dialogs, filesystem (JSON / exports),
 // and sending label canvases to the system printer / PDF.
 
@@ -60,7 +60,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 680,
-    title: 'LabelWorks - 标签设计与打印工作台',
+    title: 'LabelGuestXTC - 标签设计与打印工作台',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
