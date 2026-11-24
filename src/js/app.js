@@ -824,20 +824,21 @@ function beginInlineEdit(el) {
   const wrap = $('#canvasWrap'); if (!wrap) return;
   if ($('#welcomeEmpty')) $('#welcomeEmpty').hidden = true;
   const s = scaleFactor();
-  const ta = document.createElement('textarea');
+  const ta = document.createElement('input');
+  ta.type = 'text';
   ta.className = 'inline-edit';
-  ta.value = el[key] == null ? '' : String(el[key]);
+  // input is single-line: flatten any newlines for quick editing. Multi-line
+  // text can still be edited in the right-side properties panel textarea.
+  ta.value = el[key] == null ? '' : String(el[key]).replace(/\r?\n/g, ' ');
   // Match the canvas text size exactly: canvas draws with fontSize in mm units
   // under ctx.scale(scale), so on screen that is fontSize * scale CSS pixels.
   const fsPx = Math.max(1, fontPx(el) * s);
   // Canvas is drawn with an editor margin (EDITOR_PAD_MM) offset; the inline
-  // textarea is positioned relative to the canvas element, so add the same pad.
+  // input is positioned relative to the canvas element, so add the same pad.
   ta.style.left = ((el.x + EDITOR_PAD_MM) * s) + 'px';
   ta.style.top = ((el.y + EDITOR_PAD_MM) * s) + 'px';
   ta.style.width = Math.max(40, el.w * s) + 'px';
-  const boxH = Math.max(fsPx * 1.3, el.h * s);
-  ta.style.height = boxH + 'px';
-  ta.style.paddingTop = Math.max(0, (boxH - fsPx * 1.15) / 2) + 'px';
+  ta.style.height = Math.max(fsPx * 1.4, el.h * s) + 'px';
   ta.style.fontFamily = el.fontFamily || 'Microsoft YaHei';
   ta.style.fontSize = fsPx + 'px';
   // Match the canvas justify/distribute spacing: the renderer spreads glyphs
@@ -856,8 +857,6 @@ function beginInlineEdit(el) {
   ta.style.fontStyle = el.italic ? 'italic' : 'normal';
   ta.style.color = el.color || '#111';
   ta.style.textAlign = (el.align === 'center' || el.align === 'right') ? el.align : 'left';
-  if (el.align === 'center') ta.style.textAlign = 'center';
-  const align = el.align;
   let committed = false;
   const finish = (save) => {
     if (committed || ta._cancelled) return; committed = true;
@@ -874,7 +873,7 @@ function beginInlineEdit(el) {
   ta.addEventListener('keydown', (e) => {
     e.stopPropagation();
     if (e.key === 'Escape') { e.preventDefault(); finish(false); }
-    else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finish(true); }
+    else if (e.key === 'Enter') { e.preventDefault(); finish(true); }
   });
   wrap.appendChild(ta);
   inlineEditor = ta;
