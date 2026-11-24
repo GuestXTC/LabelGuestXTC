@@ -135,6 +135,15 @@ function render(ctx2, targetDoc, scale, opts = {}) {
   ctx2.fillRect(0, 0, ctx2.canvas.width, ctx2.canvas.height);
   ctx2.scale(scale, scale); // now drawing units == mm
 
+  // Print/export must never include anything outside the label bounds.
+  // The editor intentionally leaves this unclipped so overflowing text stays
+  // visible and editable, but the exported/printed bitmap is clipped to the page.
+  if (forExport) {
+    ctx2.beginPath();
+    ctx2.rect(0, 0, targetDoc.width, targetDoc.height);
+    ctx2.clip();
+  }
+
   if (!forExport && showGrid && gridSize > 0) {
     ctx2.strokeStyle = '#d9e2ee'; ctx2.lineWidth = 0.15;
     ctx2.beginPath();
