@@ -18,11 +18,11 @@
 
 | 平台 | 下载地址 |
 |------|----------|
-| Windows | [安装包 .exe](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.4/LabelGuestXTC-Setup-4.4.4.exe) |
-| macOS | [Apple 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.4/LabelGuestXTC-4.4.4-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.4/LabelGuestXTC-4.4.4-x64.dmg) |
-| Linux | [AppImage](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.4/LabelGuestXTC-4.4.4-x86_64.AppImage) · [.deb](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.4/LabelGuestXTC-4.4.4-amd64.deb) |
+| Windows | [安装包 .exe](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.5/LabelGuestXTC-Setup-4.4.5.exe) |
+| macOS | [Apple 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.5/LabelGuestXTC-4.4.5-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.5/LabelGuestXTC-4.4.5-x64.dmg) |
+| Linux | [AppImage](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.5/LabelGuestXTC-4.4.5-x86_64.AppImage) · [.deb](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.5/LabelGuestXTC-4.4.5-amd64.deb) |
 
-全部版本见 [Releases 页面](https://github.com/GuestXTC/LabelGuestXTC/releases/tag/v4.4.4)。
+全部版本见 [Releases 页面](https://github.com/GuestXTC/LabelGuestXTC/releases/tag/v4.4.5)。
 
 ---
 
