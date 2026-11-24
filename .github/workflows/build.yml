@@ -105,5 +105,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: |
+            artifacts/LabelGuestXTC-*/*.exe
+            artifacts/LabelGuestXTC-*/*.dmg
+            artifacts/LabelGuestXTC-*/*.zip
+            artifacts/LabelGuestXTC-*/*.AppImage
+            artifacts/LabelGuestXTC-*/*.deb
           generate_release_notes: true
+          overwrite_files: true
