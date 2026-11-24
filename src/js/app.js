@@ -1642,19 +1642,29 @@ if ($('#btnLayers')) $('#btnLayers').onclick = () => {
 
 /* ---------------- zoom ---------------- */
 function setZoom(z) {
-  zoom = Math.max(0.3, Math.min(4, z));
+  zoom = Math.max(0.2, Math.min(12, z));
   $('#zoomLabel').textContent = Math.round(zoom * 100) + '%';
   renderCanvas();
 }
-$('#zoomIn').onclick = () => setZoom(zoom + 0.1);
-$('#zoomOut').onclick = () => setZoom(zoom - 0.1);
+// Multiply/divide stepping so zoom stays usable across 20%..1200%.
+$('#zoomIn').onclick = () => { fitMode = false; setZoom(zoom * 1.25); };
+$('#zoomOut').onclick = () => { fitMode = false; setZoom(zoom / 1.25); };
 $('#zoomFit').onclick = fitZoom;
+let fitMode = true; // true = auto-fit on new doc / window resize; false after manual zoom
 function fitZoom() {
   const sc = $('#canvasScroll');
-  const zx = (sc.clientWidth - 80) / (doc.width * pxPerMmBase);
-  const zy = (sc.clientHeight - 80) / (doc.height * pxPerMmBase);
-  setZoom(Math.min(zx, zy, 2));
+  if (!sc || !doc) return;
+  // Fit the label to the visible canvas area with a small margin.
+  // No low cap here: small labels (e.g. 60x40mm) should fill the canvas.
+  const availW = Math.max(120, sc.clientWidth - 60);
+  const availH = Math.max(120, sc.clientHeight - 60);
+  const zx = availW / (doc.width * pxPerMmBase);
+  const zy = availH / (doc.height * pxPerMmBase);
+  fitMode = true;
+  setZoom(Math.min(zx, zy));
 }
+// Re-fit when the window size changes, but only while in fit mode.
+window.addEventListener('resize', () => { if (fitMode) fitZoom(); });
 $('#showGuides').onchange = (e) => { showGuides = e.target.checked; renderCanvas(); };
 
 /* ---------------- align bar ---------------- */
@@ -1784,7 +1794,9 @@ function activateTab(tab) {
   history = tab.history; hi = tab.hi;
   batchRows = tab.batchRows || []; batchHeaders = tab.batchHeaders || [];
   renderTabBar(); syncDocFields(); renderBatchTable();
-  fitZoom(); refreshAll(); updateEmptyState();
+  // Fit after the new doc's dimensions are reflected in the layout.
+  requestAnimationFrame(() => fitZoom());
+  refreshAll(); updateEmptyState();
 }
 function renderTabBar() {
   const bar = $('#tabList');
@@ -2728,7 +2740,8 @@ function init() {
   renderTabBar();
   updateEmptyState();
   bindDocSize();
-  fitZoom();
+  // Defer fit until layout is measurable (window may not be laid out yet).
+  requestAnimationFrame(() => fitZoom());
   refreshAll();
   $('#versionTag').textContent = 'v' + (api ? '1.0' : '1.0');
   if (api && api.app) api.app.version().then(v => { if (v) $('#versionTag').textContent = 'v' + v; }).catch(() => {});
