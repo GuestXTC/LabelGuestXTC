@@ -80,11 +80,6 @@
     <button class="ribbon-tab" data-ribbon="data">数据 / 变量</button>
     <button class="ribbon-tab" data-ribbon="view">视图</button>
     <button class="ribbon-tab" data-ribbon="file">文件</button>
-    <div class="ribbon-tabs-right">
-      <button class="ribbon-quick" id="btnSave" title="保存 Ctrl+S"><svg class="i"><use href="#i-save"/></svg></button>
-      <button class="ribbon-quick" id="undoBtn" title="撤销 Ctrl+Z"><svg class="i"><use href="#i-undo"/></svg></button>
-      <button class="ribbon-quick" id="redoBtn" title="重做 Ctrl+Y"><svg class="i"><use href="#i-redo"/></svg></button>
-    </div>
   </nav>
 
   <!-- ============ Ribbon panels ============ -->
@@ -95,6 +90,9 @@
         <div class="ribbon-group-body">
           <button class="ribbon-big" id="btnOpenDdl" title="打开标签文件 (.xtc / .ddl / .json)"><svg class="i"><use href="#i-folder"/></svg><span>打开</span></button>
           <button class="ribbon-big primary" id="btnPrint" title="打印中心"><svg class="i"><use href="#i-print"/></svg><span>打印</span></button>
+          <button class="ribbon-big" id="btnSave" title="保存 Ctrl+S"><svg class="i"><use href="#i-save"/></svg><span>保存</span></button>
+          <button class="ribbon-big" id="undoBtn" title="撤销 Ctrl+Z"><svg class="i"><use href="#i-undo"/></svg><span>撤销</span></button>
+          <button class="ribbon-big" id="redoBtn" title="重做 Ctrl+Y"><svg class="i"><use href="#i-redo"/></svg><span>重做</span></button>
           <div class="ribbon-stack">
             <button class="ribbon-small" id="btnSaveAs" title="另存为"><svg class="i"><use href="#i-saveas"/></svg>另存为</button>
             <button class="ribbon-small" id="btnImportJson" title="导入标签文件"><svg class="i"><use href="#i-import"/></svg>导入</button>
@@ -112,46 +110,47 @@
         </div>
         <div class="ribbon-group-label">剪贴板</div>
       </div>
-      <div class="ribbon-group">
-        <div class="ribbon-group-body">
-          <select id="fbFont" class="ribbon-font" disabled><option>Arial</option><option>Microsoft YaHei</option><option>SimHei</option><option>SimSun</option><option>Consolas</option></select>
-          <input id="fbSize" class="ribbon-size" type="number" min="1" max="100" value="5" disabled title="字号(mm)" />
-          <div class="ribbon-row">
-            <button class="ribbon-mini" id="fbBold" disabled title="粗体"><b>B</b></button>
-            <button class="ribbon-mini" id="fbItalic" disabled title="斜体"><i>I</i></button>
-            <button class="ribbon-mini" id="fbUnderline" disabled title="下划线"><u>U</u></button>
-            <button class="ribbon-mini" id="fbStrike" disabled title="删除线"><s>S</s></button>
-            <button class="ribbon-mini" id="fbColor" disabled title="文字颜色">A<span class="fb-color-bar" id="fbColorBar"></span></button>
+      <div class="ribbon-group wide">
+        <div class="ribbon-group-body ribbon-two-cols">
+          <div class="ribbon-col">
+            <div class="ribbon-row">
+              <select id="fbFont" class="ribbon-font" disabled><option>Arial</option><option>Microsoft YaHei</option><option>SimHei</option><option>SimSun</option><option>Consolas</option></select>
+              <input id="fbSize" class="ribbon-size" type="number" min="1" max="100" value="5" disabled title="字号(mm)" />
+            </div>
+            <div class="ribbon-row">
+              <button class="ribbon-mini" id="fbBold" disabled title="粗体"><b>B</b></button>
+              <button class="ribbon-mini" id="fbItalic" disabled title="斜体"><i>I</i></button>
+              <button class="ribbon-mini" id="fbUnderline" disabled title="下划线"><u>U</u></button>
+              <button class="ribbon-mini" id="fbStrike" disabled title="删除线"><s>S</s></button>
+              <button class="ribbon-mini" id="fbColor" disabled title="文字颜色">A<span class="fb-color-bar" id="fbColorBar"></span></button>
+            </div>
+            <div class="ribbon-row">
+              <button class="ribbon-mini" id="fbAlignLeft" disabled title="左对齐"><svg class="i"><use href="#i-al"/></svg></button>
+              <button class="ribbon-mini" id="fbAlignCenter" disabled title="居中"><svg class="i"><use href="#i-ac"/></svg></button>
+              <button class="ribbon-mini" id="fbAlignRight" disabled title="右对齐"><svg class="i"><use href="#i-ar"/></svg></button>
+              <button class="ribbon-mini" id="fbAlignJustify" disabled title="撑满"><svg class="i"><use href="#i-aj"/></svg></button>
+              <button class="ribbon-mini" id="fbAlignDistribute" disabled title="平铺"><svg class="i"><use href="#i-ad"/></svg></button>
+            </div>
           </div>
-          <div class="ribbon-row">
-            <button class="ribbon-mini" id="fbAlignLeft" disabled title="左对齐"><svg class="i"><use href="#i-al"/></svg></button>
-            <button class="ribbon-mini" id="fbAlignCenter" disabled title="居中"><svg class="i"><use href="#i-ac"/></svg></button>
-            <button class="ribbon-mini" id="fbAlignRight" disabled title="右对齐"><svg class="i"><use href="#i-ar"/></svg></button>
-            <button class="ribbon-mini" id="fbAlignJustify" disabled title="撑满"><svg class="i"><use href="#i-aj"/></svg></button>
-            <button class="ribbon-mini" id="fbAlignDistribute" disabled title="平铺"><svg class="i"><use href="#i-ad"/></svg></button>
+          <div class="ribbon-col">
+            <div class="ribbon-row">
+              <button class="ab-btn" data-align="left" title="左对齐"><svg class="i"><use href="#i-al"/></svg></button>
+              <button class="ab-btn" data-align="hcenter" title="水平居中"><svg class="i"><use href="#i-ac"/></svg></button>
+              <button class="ab-btn" data-align="right" title="右对齐"><svg class="i"><use href="#i-ar"/></svg></button>
+              <button class="ab-btn" data-align="top" title="顶对齐"><svg class="i"><use href="#i-at"/></svg></button>
+              <button class="ab-btn" data-align="vcenter" title="垂直居中"><svg class="i"><use href="#i-am"/></svg></button>
+              <button class="ab-btn" data-align="bottom" title="底对齐"><svg class="i"><use href="#i-ab"/></svg></button>
+            </div>
+            <div class="ribbon-row">
+              <button class="ab-btn" data-align="distH" title="水平等距"><svg class="i"><use href="#i-dh"/></svg></button>
+              <button class="ab-btn" data-align="distV" title="垂直等距"><svg class="i"><use href="#i-dv"/></svg></button>
+              <button class="ab-btn text" data-align="sameW" title="统一宽度">同宽</button>
+              <button class="ab-btn text" data-align="sameH" title="统一高度">同高</button>
+              <button class="ab-btn text" data-align="sameSize" title="统一大小">同尺寸</button>
+            </div>
           </div>
         </div>
-        <div class="ribbon-group-label">字体 · 对齐</div>
-      </div>
-      <div class="ribbon-group">
-        <div class="ribbon-group-body">
-          <div class="ribbon-row">
-            <button class="ab-btn" data-align="left" title="左对齐"><svg class="i"><use href="#i-al"/></svg></button>
-            <button class="ab-btn" data-align="hcenter" title="水平居中"><svg class="i"><use href="#i-ac"/></svg></button>
-            <button class="ab-btn" data-align="right" title="右对齐"><svg class="i"><use href="#i-ar"/></svg></button>
-            <button class="ab-btn" data-align="top" title="顶对齐"><svg class="i"><use href="#i-at"/></svg></button>
-            <button class="ab-btn" data-align="vcenter" title="垂直居中"><svg class="i"><use href="#i-am"/></svg></button>
-            <button class="ab-btn" data-align="bottom" title="底对齐"><svg class="i"><use href="#i-ab"/></svg></button>
-          </div>
-          <div class="ribbon-row">
-            <button class="ab-btn" data-align="distH" title="水平等距"><svg class="i"><use href="#i-dh"/></svg></button>
-            <button class="ab-btn" data-align="distV" title="垂直等距"><svg class="i"><use href="#i-dv"/></svg></button>
-            <button class="ab-btn text" data-align="sameW" title="统一宽度">同宽</button>
-            <button class="ab-btn text" data-align="sameH" title="统一高度">同高</button>
-            <button class="ab-btn text" data-align="sameSize" title="统一大小">同尺寸</button>
-          </div>
-        </div>
-        <div class="ribbon-group-label">排列</div>
+        <div class="ribbon-group-label">字体 · 对齐 · 排列</div>
       </div>
     </section>
 

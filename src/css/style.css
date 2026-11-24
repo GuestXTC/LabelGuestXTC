@@ -575,6 +575,8 @@ body{font-size:14px;color:var(--lw-ink);-webkit-font-smoothing:antialiased}
 .ribbon-small .i{width:15px;height:15px;color:var(--lw-accent)}
 .ribbon-small:hover{background:var(--lw-soft)}
 .ribbon-row{display:flex;align-items:center;gap:3px}
+.ribbon-two-cols{display:flex;flex-direction:row;align-items:center;gap:16px;flex-wrap:nowrap}
+.ribbon-col{display:flex;flex-direction:column;gap:4px;justify-content:center}
 .ribbon-mini{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--lw-line);background:var(--lw-panel);border-radius:5px;color:var(--lw-ink);cursor:pointer;font-size:12.5px;position:relative}
 .ribbon-mini .i{width:15px;height:15px}
 .ribbon-mini:hover:not(:disabled){background:var(--lw-soft);border-color:var(--lw-accent)}
