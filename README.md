@@ -3,7 +3,7 @@
 一个**完全开源（MIT）**、从零实现的桌面标签设计与批量打印工具。采用现代扁平化 Ribbon 界面，支持变量数据绑定、条码工具、标签文件导入与 TSPL 打印。用于仓储、零售、制造、跨境、价签等标签场景。
 
 **仓库地址**：
-- Gitee：https://gitee.com/liuwei9559/LabelGuestXTC
+- Gitee：https://gitee.com/GuestXTC/LabelGuestXTC
 - GitHub：https://github.com/GuestXTC/LabelGuestXTC
 
 > 本项目是独立编写的干净室（clean-room）实现，不包含、不复制任何商业软件的源代码、界面素材或私有数据格式。
