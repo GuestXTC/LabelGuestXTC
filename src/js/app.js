@@ -1692,7 +1692,7 @@ if ($('#btnLabelSetup')) $('#btnLabelSetup').onclick = () => {
 /* ---------------- format bar (text properties) ---------------- */
 function refreshFormatBar(el) {
   const isText = el && el.type === 'text';
-  ['fbFont','fbSize','fbBold','fbItalic','fbUnderline','fbStrike','fbAlignLeft','fbAlignCenter','fbAlignRight','fbAlignJustify','fbAlignDistribute','fbColor'].forEach(id => {
+  ['fbBold','fbItalic','fbUnderline','fbStrike','fbAlignLeft','fbAlignCenter','fbAlignRight','fbAlignJustify','fbAlignDistribute','fbColor'].forEach(id => {
     const b = $('#' + id); if (b) b.disabled = !isText;
   });
   if (!isText) {
@@ -1700,8 +1700,8 @@ function refreshFormatBar(el) {
     return;
   }
   if ($('#fbHint')) $('#fbHint').textContent = '';
-  $('#fbFont').value = el.fontFamily || 'Arial';
-  $('#fbSize').value = el.fontSize || 5;
+  if ($('#fbFont')) $('#fbFont').value = el.fontFamily || 'Arial';
+  if ($('#fbSize')) $('#fbSize').value = el.fontSize || 5;
   $('#fbBold').classList.toggle('active', !!el.bold);
   $('#fbItalic').classList.toggle('active', !!el.italic);
   $('#fbUnderline').classList.toggle('active', !!el.underline);
