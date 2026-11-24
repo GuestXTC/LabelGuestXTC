@@ -15,7 +15,7 @@ let mainWindow = null;
 // launches the app with the file path in argv. Collect those paths and send
 // them to the renderer once the window is ready.
 function pathsFromArgv(argv) {
-  return (argv || []).filter(p => typeof p === 'string' && /\.(ddl|yy|json)$/i.test(p) && fs.existsSync(p));
+  return (argv || []).filter(p => typeof p === 'string' && /\.(ddl|xtc|yy|json)$/i.test(p) && fs.existsSync(p));
 }
 let pendingOpenPaths = pathsFromArgv(process.argv);
 // macOS "open file" events
@@ -166,8 +166,9 @@ ipcMain.handle('file:open-any', async () => {
   const res = await dialog.showOpenDialog(mainWindow, {
     title: '打开标签文件',
     filters: [
-      { name: '标签文件 (*.ddl, *.yy, *.json)', extensions: ['ddl', 'yy', 'json'] },
-      { name: '标签文件 (*.yy)', extensions: ['yy'] },
+      { name: '标签文件 (*.xtc, *.ddl, *.json)', extensions: ['xtc', 'ddl', 'json'] },
+      { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
+      { name: '旧版标签文件 (*.yy)', extensions: ['yy'] },
       { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] },
       { name: '标签 JSON (*.json)', extensions: ['json'] },
       { name: '所有文件', extensions: ['*'] }
@@ -198,18 +199,19 @@ ipcMain.handle('file:save-as', async (event, payload) => {
   const base = (payload.name || '标签').replace(/[\\/:*?"<>|]/g, '_');
   const res = await dialog.showSaveDialog(mainWindow, {
     title: '另存为',
-    defaultPath: base + '.' + (payload.defaultType === 'ddl' ? 'ddl' : (payload.defaultType === 'json' ? 'json' : 'yy')),
+    defaultPath: base + '.' + (payload.defaultType === 'ddl' ? 'ddl' : (payload.defaultType === 'json' ? 'json' : 'xtc')),
     filters: [
-      { name: '标签文件 (*.yy)', extensions: ['yy'] },
+      { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
       { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] },
-      { name: '标签 JSON (*.json)', extensions: ['json'] }
+      { name: '标签 JSON (*.json)', extensions: ['json'] },
+      { name: '旧版标签文件 (*.yy)', extensions: ['yy'] }
     ]
   });
   if (res.canceled) return { ok: false };
   const ext = path.extname(res.filePath).toLowerCase();
-  // .yy is our native format with JSON content; keep 'yy' as the type so Save
-  // keeps the .yy extension, but treat it as JSON data everywhere else.
-  const type = ext === '.ddl' ? 'ddl' : (ext === '.json' ? 'json' : 'yy');
+  // .xtc is our native format with JSON content (.yy kept as legacy alias).
+  // Any non-ddl/non-json extension maps to the native type.
+  const type = ext === '.ddl' ? 'ddl' : (ext === '.json' ? 'json' : 'xtc');
   const content = type === 'ddl' ? payload.ddlXml : JSON.stringify(payload.doc, null, 2);
   try {
     fs.writeFileSync(res.filePath, content, 'utf8');
@@ -482,11 +484,11 @@ ipcMain.handle('app:userData', async () => app.getPath('userData'));
 
 // ---- File association repair -------------------------------------------
 // NSIS registers the LabelGuestXTC File ProgID at install time, but a
-// pre-existing user choice (.ddl/.yy opened by another app) can override it.
+// pre-existing user choice (.ddl/.xtc opened by another app) can override it.
 // These handlers let the user repair the association with one click, using
 // HKCU (per-user) registry writes so no administrator rights are needed.
 const ASSOC_PROGID = 'LabelGuestXTC File';
-const ASSOC_EXTS = ['yy', 'ddl', 'json'];
+const ASSOC_EXTS = ['xtc', 'ddl', 'json'];
 
 function regQueryHKCU(subKey) {
   try {

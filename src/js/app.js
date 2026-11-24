@@ -1859,7 +1859,7 @@ $('#btnNew').onclick = () => newTab();
 function syncDocTab() { renderTabBar(); }
 
 function contentFor(type) {
-  // .yy is the native format: same JSON content, just a different extension.
+  // .xtc is the native format: same JSON content, just a different extension.
   return type === 'ddl' ? serializeToDDL(doc) : JSON.stringify(doc, null, 2);
 }
 
@@ -1876,7 +1876,7 @@ $('#btnSave').onclick = async () => {
 $('#btnSaveAs').onclick = async () => { await saveAsFlow(); };
 
 async function saveAsFlow() {
-  const r = await api.file.saveAs(doc.name || '标签', doc, serializeToDDL(doc), currentFile ? currentFile.type : 'yy');
+  const r = await api.file.saveAs(doc.name || '标签', doc, serializeToDDL(doc), currentFile ? currentFile.type : 'xtc');
   if (!r.ok) return;
   currentFile = { path: r.file, type: r.type };
   const base = String(r.file).split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
@@ -2244,7 +2244,7 @@ function bindDragOpen() {
     if (!files || !files.length) return;
     const p = files[0].path;
     if (!p) { toast('无法读取拖入文件路径，请使用「打开」按钮'); return; }
-    if (!/\.(ddl|yy|json)$/i.test(p)) { toast('只支持 .ddl、.yy 和 .json 文件'); return; }
+    if (!/\.(ddl|xtc|yy|json)$/i.test(p)) { toast('只支持 .xtc、.ddl、.yy 和 .json 文件'); return; }
     try { loadFromOpenResult(await api.file.read(p)); }
     catch (err) { toast('打开失败：' + err.message); }
   }, false);
@@ -2734,7 +2734,7 @@ function init() {
   if (api && api.app) api.app.version().then(v => { if (v) $('#versionTag').textContent = 'v' + v; }).catch(() => {});
   if ($('#printerSelect')) refreshPrinters();
 
-  // File association repair: double-clicking .ddl/.yy/.json should open this app.
+  // File association repair: double-clicking .ddl/.xtc/.json should open this app.
   const fixBtn = $('#btnFixAssoc');
   const assocTip = $('#assocTip');
   if (fixBtn && api && api.assoc) {
