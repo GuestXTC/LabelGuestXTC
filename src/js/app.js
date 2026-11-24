@@ -827,16 +827,31 @@ function beginInlineEdit(el) {
   const ta = document.createElement('textarea');
   ta.className = 'inline-edit';
   ta.value = el[key] == null ? '' : String(el[key]);
-  // style to visually match the rendered text
-  const fsPx = Math.max(9, fontPx(el) * s);
+  // Match the canvas text size exactly: canvas draws with fontSize in mm units
+  // under ctx.scale(scale), so on screen that is fontSize * scale CSS pixels.
+  const fsPx = Math.max(1, fontPx(el) * s);
   // Canvas is drawn with an editor margin (EDITOR_PAD_MM) offset; the inline
   // textarea is positioned relative to the canvas element, so add the same pad.
   ta.style.left = ((el.x + EDITOR_PAD_MM) * s) + 'px';
   ta.style.top = ((el.y + EDITOR_PAD_MM) * s) + 'px';
   ta.style.width = Math.max(40, el.w * s) + 'px';
-  ta.style.height = Math.max(fsPx * 1.6, el.h * s) + 'px';
+  const boxH = Math.max(fsPx * 1.3, el.h * s);
+  ta.style.height = boxH + 'px';
+  ta.style.paddingTop = Math.max(0, (boxH - fsPx * 1.15) / 2) + 'px';
   ta.style.fontFamily = el.fontFamily || 'Microsoft YaHei';
   ta.style.fontSize = fsPx + 'px';
+  // Match the canvas justify/distribute spacing: the renderer spreads glyphs
+  // across el.w, so reproduce that with CSS letter-spacing while editing.
+  let lsPx = (el.letterSpacing || 0) * s;
+  const al = ['center','right','justify','distribute'].indexOf(el.align) >= 0 ? el.align : 'left';
+  if ((al === 'justify' || al === 'distribute') && el[key]) {
+    const probe = document.createElement('canvas').getContext('2d');
+    probe.font = `${el.bold ? '700 ' : '400 '}${fontPx(el)}px "${el.fontFamily || 'Microsoft YaHei'}, sans-serif"`;
+    const chars = Array.from(String(el[key]));
+    const glyphW = chars.reduce((a, ch) => a + probe.measureText(ch).width, 0);
+    if (chars.length > 1 && glyphW < el.w) lsPx = (el.w - glyphW) / (chars.length - 1) * s;
+  }
+  ta.style.letterSpacing = lsPx + 'px';
   ta.style.fontWeight = el.bold ? '700' : '400';
   ta.style.fontStyle = el.italic ? 'italic' : 'normal';
   ta.style.color = el.color || '#111';

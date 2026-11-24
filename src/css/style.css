@@ -373,7 +373,7 @@ button{cursor:pointer;color:inherit}
 .st-right{margin-left:auto;color:var(--blue-d);font-weight:600}
 
 /* inline text editor on canvas */
-.inline-edit{position:absolute;z-index:5;border:2px solid var(--blue);border-radius:3px;background:rgba(255,255,255,.97);padding:2px 4px;margin:0;resize:none;line-height:1.15;outline:none;box-shadow:0 4px 16px rgba(37,99,235,.25);overflow:hidden;white-space:pre-wrap}
+.inline-edit{position:absolute;z-index:5;border:2px solid var(--blue);border-radius:3px;background:rgba(255,255,255,.97);padding:0 2px;margin:0;resize:none;line-height:1;outline:none;box-shadow:0 4px 16px rgba(37,99,235,.25);overflow:visible;white-space:pre;box-sizing:border-box}
 
 /* welcome / empty state */
 .welcome-empty{position:absolute;inset:22px;display:grid;place-items:center;z-index:3;pointer-events:none}
