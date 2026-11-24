@@ -2244,7 +2244,7 @@ function bindDragOpen() {
     if (!files || !files.length) return;
     const p = files[0].path;
     if (!p) { toast('无法读取拖入文件路径，请使用「打开」按钮'); return; }
-    if (!/\.(ddl|xtc|yy|json)$/i.test(p)) { toast('只支持 .xtc、.ddl、.yy 和 .json 文件'); return; }
+    if (!/\.(ddl|xtc|json)$/i.test(p)) { toast('只支持 .xtc、.ddl 和 .json 文件'); return; }
     try { loadFromOpenResult(await api.file.read(p)); }
     catch (err) { toast('打开失败：' + err.message); }
   }, false);

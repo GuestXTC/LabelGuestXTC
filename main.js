@@ -15,7 +15,7 @@ let mainWindow = null;
 // launches the app with the file path in argv. Collect those paths and send
 // them to the renderer once the window is ready.
 function pathsFromArgv(argv) {
-  return (argv || []).filter(p => typeof p === 'string' && /\.(ddl|xtc|yy|json)$/i.test(p) && fs.existsSync(p));
+  return (argv || []).filter(p => typeof p === 'string' && /\.(ddl|xtc|json)$/i.test(p) && fs.existsSync(p));
 }
 let pendingOpenPaths = pathsFromArgv(process.argv);
 // macOS "open file" events
@@ -168,7 +168,6 @@ ipcMain.handle('file:open-any', async () => {
     filters: [
       { name: '标签文件 (*.xtc, *.ddl, *.json)', extensions: ['xtc', 'ddl', 'json'] },
       { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
-      { name: '旧版标签文件 (*.yy)', extensions: ['yy'] },
       { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] },
       { name: '标签 JSON (*.json)', extensions: ['json'] },
       { name: '所有文件', extensions: ['*'] }
@@ -203,13 +202,12 @@ ipcMain.handle('file:save-as', async (event, payload) => {
     filters: [
       { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
       { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] },
-      { name: '标签 JSON (*.json)', extensions: ['json'] },
-      { name: '旧版标签文件 (*.yy)', extensions: ['yy'] }
+      { name: '标签 JSON (*.json)', extensions: ['json'] }
     ]
   });
   if (res.canceled) return { ok: false };
   const ext = path.extname(res.filePath).toLowerCase();
-  // .xtc is our native format with JSON content (.yy kept as legacy alias).
+  // .xtc is our native format with JSON content.
   // Any non-ddl/non-json extension maps to the native type.
   const type = ext === '.ddl' ? 'ddl' : (ext === '.json' ? 'json' : 'xtc');
   const content = type === 'ddl' ? payload.ddlXml : JSON.stringify(payload.doc, null, 2);

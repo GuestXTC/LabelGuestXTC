@@ -18,11 +18,11 @@
 
 | 平台 | 下载地址 |
 |------|----------|
-| Windows | [安装包 .exe](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.2/LabelGuestXTC-Setup-4.4.2.exe) |
-| macOS | [Apple 芯片 .dmg](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.2/LabelGuestXTC-4.4.2-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.2/LabelGuestXTC-4.4.2-x64.dmg) |
-| Linux | [AppImage](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.2/LabelGuestXTC-4.4.2-x86_64.AppImage) · [.deb](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.2/LabelGuestXTC-4.4.2-amd64.deb) |
+| Windows | [安装包 .exe](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-Setup-4.4.3.exe) |
+| macOS | [Apple 芯片 .dmg](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-x64.dmg) |
+| Linux | [AppImage](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-x86_64.AppImage) · [.deb](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-amd64.deb) |
 
-全部版本见 [Releases 页面](https://github.com/eced-cn/LabelGuestXTC/releases/tag/v4.4.2)。
+全部版本见 [Releases 页面](https://github.com/eced-cn/LabelGuestXTC/releases/tag/v4.4.3)。
 
 ---
 
@@ -67,7 +67,7 @@
 - 一次生成 N 张标签，统一打印或导出
 
 ### 打开标签文件
-- 原生标签格式 **`.xtc`**（JSON 内容）：新建和「另存为」默认用 `.xtc`，打开/拖放均支持；旧版 `.yy` 文件仍可打开
+- 原生标签格式 **`.xtc`**（JSON 内容）：新建和「另存为」默认用 `.xtc`，打开/拖放均支持
 - 可直接打开常见的 **XML 标签文件**（纯解析、不依赖其它软件）
 - 安装后**双击标签文件即可用本工具打开**（已注册文件关联）；也支持从右键"打开方式"选择
 - 自动还原纸张尺寸（毫米）与全部元素，支持文本、线条、矩形/椭圆、图片、一维码/二维码、表格等类型
