@@ -1687,30 +1687,31 @@ if ($('#btnLayers')) $('#btnLayers').onclick = () => {
 };
 
 /* ---------------- zoom ---------------- */
+// The canvas area never scrolls: zoom is capped so the whole canvas (label
+// plus the editor overflow margin) always fits inside the visible area.
+function maxFitZoom() {
+  const sc = $('#canvasScroll');
+  if (!sc || !doc) return 4;
+  const availW = Math.max(120, sc.clientWidth - 60);
+  const availH = Math.max(120, sc.clientHeight - 60);
+  const baseW = (doc.width + EDITOR_PAD_MM * 2) * pxPerMmBase;
+  const baseH = (doc.height + EDITOR_PAD_MM * 2) * pxPerMmBase;
+  return Math.max(0.2, Math.min(availW / baseW, availH / baseH));
+}
 function setZoom(z) {
-  zoom = Math.max(0.2, Math.min(12, z));
+  // Upper bound is the fit size, so no scrollbar / dragging is ever needed.
+  zoom = Math.max(0.2, Math.min(maxFitZoom(), z));
   $('#zoomLabel').textContent = Math.round(zoom * 100) + '%';
   renderCanvas();
 }
-// Multiply/divide stepping so zoom stays usable across 20%..1200%.
-$('#zoomIn').onclick = () => { fitMode = false; setZoom(zoom * 1.25); };
-$('#zoomOut').onclick = () => { fitMode = false; setZoom(zoom / 1.25); };
+$('#zoomIn').onclick = () => setZoom(zoom * 1.25);
+$('#zoomOut').onclick = () => setZoom(zoom / 1.25);
 $('#zoomFit').onclick = fitZoom;
-let fitMode = true; // true = auto-fit on new doc / window resize; false after manual zoom
 function fitZoom() {
-  const sc = $('#canvasScroll');
-  if (!sc || !doc) return;
-  // Fit the label to the visible canvas area with a small margin.
-  // No low cap here: small labels (e.g. 60x40mm) should fill the canvas.
-  const availW = Math.max(120, sc.clientWidth - 60);
-  const availH = Math.max(120, sc.clientHeight - 60);
-  const zx = availW / (doc.width * pxPerMmBase);
-  const zy = availH / (doc.height * pxPerMmBase);
-  fitMode = true;
-  setZoom(Math.min(zx, zy));
+  setZoom(maxFitZoom());
 }
-// Re-fit when the window size changes, but only while in fit mode.
-window.addEventListener('resize', () => { if (fitMode) fitZoom(); });
+// Keep the whole canvas visible whenever the window size changes.
+window.addEventListener('resize', () => fitZoom());
 $('#showGuides').onchange = (e) => { showGuides = e.target.checked; renderCanvas(); };
 
 /* ---------------- align bar ---------------- */
