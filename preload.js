@@ -30,6 +30,10 @@ const api = {
     version: () => ipcRenderer.invoke('app:version'),
     userData: () => ipcRenderer.invoke('app:userData')
   },
+  assoc: {
+    status: () => ipcRenderer.invoke('assoc:status'),
+    fix: () => ipcRenderer.invoke('assoc:fix')
+  },
   win: {
     minimize: () => ipcRenderer.invoke('win:minimize'),
     maximize: () => ipcRenderer.invoke('win:maximize'),

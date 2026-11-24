@@ -6,6 +6,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { execFileSync } = require('child_process');
 
 let mainWindow = null;
 
@@ -478,3 +479,58 @@ ipcMain.handle('print:labels', async (event, payload) => {
 
 ipcMain.handle('app:version', async () => app.getVersion());
 ipcMain.handle('app:userData', async () => app.getPath('userData'));
+
+// ---- File association repair -------------------------------------------
+// NSIS registers the LabelGuestXTC File ProgID at install time, but a
+// pre-existing user choice (.ddl/.yy opened by another app) can override it.
+// These handlers let the user repair the association with one click, using
+// HKCU (per-user) registry writes so no administrator rights are needed.
+const ASSOC_PROGID = 'LabelGuestXTC File';
+const ASSOC_EXTS = ['yy', 'ddl', 'json'];
+
+function regQueryHKCU(subKey) {
+  try {
+    const out = execFileSync('reg', ['query', `HKCU\\Software\\Classes\\${subKey}`, '/ve'],
+      { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+    const m = out.match(/REG_SZ\s+(.*)$/m);
+    return m ? m[1].trim() : null;
+  } catch (_) { return null; }
+}
+
+function regAddHKCU(subKey, value) {
+  execFileSync('reg', ['add', `HKCU\\Software\\Classes\\${subKey}`, '/ve',
+    '/t', 'REG_SZ', '/d', value, '/f'],
+    { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+}
+
+ipcMain.handle('assoc:status', async () => {
+  if (process.platform !== 'win32') return { ok: false, error: '仅 Windows 支持文件关联' };
+  const result = {};
+  for (const ext of ASSOC_EXTS) {
+    result[ext] = regQueryHKCU(`.${ext}`);
+  }
+  return { ok: true, current: result, progId: ASSOC_PROGID };
+});
+
+ipcMain.handle('assoc:fix', async () => {
+  if (process.platform !== 'win32') return { ok: false, error: '仅 Windows 支持文件关联' };
+  try {
+    // Per-user ProgID registration (points to this exe).
+    const exePath = app.getPath('exe');
+    regAddHKCU(`${ASSOC_PROGID}\\shell\\open\\command`, `"${exePath}" "%1"`);
+    regAddHKCU(ASSOC_PROGID, 'LabelGuestXTC 标签文件');
+    // Bind each extension to our ProgID at the user level (overrides old choice).
+    for (const ext of ASSOC_EXTS) {
+      regAddHKCU(`.${ext}`, ASSOC_PROGID);
+      regAddHKCU(`.${ext}\\OpenWithProgids\\${ASSOC_PROGID}`, '');
+    }
+    // Tell Windows the associations changed.
+    try {
+      execFileSync('rundll32', ['user32.dll,UpdatePerUserSystemParameters'],
+        { windowsHide: true, timeout: 5000 });
+    } catch (_) { /* best effort */ }
+    return { ok: true, progId: ASSOC_PROGID, exts: ASSOC_EXTS };
+  } catch (e) {
+    return { ok: false, error: (e.stderr || e.message || String(e)).toString().trim().slice(0, 300) };
+  }
+});

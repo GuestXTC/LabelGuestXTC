@@ -2733,5 +2733,23 @@ function init() {
   $('#versionTag').textContent = 'v' + (api ? '1.0' : '1.0');
   if (api && api.app) api.app.version().then(v => { if (v) $('#versionTag').textContent = 'v' + v; }).catch(() => {});
   if ($('#printerSelect')) refreshPrinters();
+
+  // File association repair: double-clicking .ddl/.yy/.json should open this app.
+  const fixBtn = $('#btnFixAssoc');
+  const assocTip = $('#assocTip');
+  if (fixBtn && api && api.assoc) {
+    fixBtn.addEventListener('click', async () => {
+      fixBtn.disabled = true;
+      assocTip.textContent = '正在修复...';
+      try {
+        const r = await api.assoc.fix();
+        assocTip.textContent = r.ok ? '已修复，双击标签文件即可打开' : ('修复失败：' + (r.error || '未知错误'));
+      } catch (e) {
+        assocTip.textContent = '修复失败：' + (e.message || e);
+      } finally {
+        fixBtn.disabled = false;
+      }
+    });
+  }
 }
 init();
