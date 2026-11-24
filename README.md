@@ -4,7 +4,7 @@
 
 **仓库地址**：
 - Gitee：https://gitee.com/liuwei9559/LabelGuestXTC
-- GitHub：https://github.com/eced-cn/LabelGuestXTC
+- GitHub：https://github.com/GuestXTC/LabelGuestXTC
 
 > 本项目是独立编写的干净室（clean-room）实现，不包含、不复制任何商业软件的源代码、界面素材或私有数据格式。
 >
@@ -18,11 +18,11 @@
 
 | 平台 | 下载地址 |
 |------|----------|
-| Windows | [安装包 .exe](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-Setup-4.4.3.exe) |
-| macOS | [Apple 芯片 .dmg](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-x64.dmg) |
-| Linux | [AppImage](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-x86_64.AppImage) · [.deb](https://github.com/eced-cn/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-amd64.deb) |
+| Windows | [安装包 .exe](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-Setup-4.4.3.exe) |
+| macOS | [Apple 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-x64.dmg) |
+| Linux | [AppImage](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-x86_64.AppImage) · [.deb](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.4.3/LabelGuestXTC-4.4.3-amd64.deb) |
 
-全部版本见 [Releases 页面](https://github.com/eced-cn/LabelGuestXTC/releases/tag/v4.4.3)。
+全部版本见 [Releases 页面](https://github.com/GuestXTC/LabelGuestXTC/releases/tag/v4.4.3)。
 
 ---
 
