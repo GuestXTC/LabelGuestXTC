@@ -829,8 +829,10 @@ function beginInlineEdit(el) {
   ta.value = el[key] == null ? '' : String(el[key]);
   // style to visually match the rendered text
   const fsPx = Math.max(9, fontPx(el) * s);
-  ta.style.left = (el.x * s) + 'px';
-  ta.style.top = (el.y * s) + 'px';
+  // Canvas is drawn with an editor margin (EDITOR_PAD_MM) offset; the inline
+  // textarea is positioned relative to the canvas element, so add the same pad.
+  ta.style.left = ((el.x + EDITOR_PAD_MM) * s) + 'px';
+  ta.style.top = ((el.y + EDITOR_PAD_MM) * s) + 'px';
   ta.style.width = Math.max(40, el.w * s) + 'px';
   ta.style.height = Math.max(fsPx * 1.6, el.h * s) + 'px';
   ta.style.fontFamily = el.fontFamily || 'Microsoft YaHei';
@@ -1867,7 +1869,11 @@ function renderTabBar() {
 }
 function updateEmptyState() {
   const w = $('#welcomeEmpty'); if (!w) return;
-  w.hidden = tabs.length > 0;
+  const empty = tabs.length === 0;
+  w.hidden = !empty;
+  // With no open tab there is no document to show: hide the blank canvas too.
+  const wrap = $('#canvasWrap');
+  if (wrap) wrap.style.visibility = empty ? 'hidden' : 'visible';
 }
 if ($('#weOpen')) $('#weOpen').onclick = () => openDocument();
 if ($('#weNew')) $('#weNew').onclick = () => newTab();
