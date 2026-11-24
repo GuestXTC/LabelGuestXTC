@@ -112,12 +112,17 @@ function redo() { if (hi < history.length - 1) { hi++; restore(); } }
 const canvas = $('#labelCanvas');
 const ctx = canvas.getContext('2d');
 
+// Editor-only margin around the label. Overflowing elements are drawn here in
+// semi-transparent form so they stay visible/editable, but are never printed.
+const EDITOR_PAD_MM = 12;
+
 function scaleFactor() { return pxPerMmBase * zoom; }
 
 function resizeCanvas() {
   const s = scaleFactor();
-  canvas.width = Math.round(doc.width * s);
-  canvas.height = Math.round(doc.height * s);
+  const pad = Math.round(EDITOR_PAD_MM * s);
+  canvas.width = Math.round(doc.width * s) + pad * 2;
+  canvas.height = Math.round(doc.height * s) + pad * 2;
   canvas.style.width = canvas.width + 'px';
   canvas.style.height = canvas.height + 'px';
   $('#canvasWrap').style.width = canvas.width + 'px';
@@ -128,20 +133,27 @@ function mmRect(el) { return { x: el.x, y: el.y, w: el.w, h: el.h }; }
 
 function render(ctx2, targetDoc, scale, opts = {}) {
   const { forExport = false, record = null, batchEnabled = false } = opts;
+  const padPx = forExport ? 0 : Math.round(EDITOR_PAD_MM * scale);
   ctx2.save();
   ctx2.setTransform(1, 0, 0, 1, 0, 0);
   ctx2.clearRect(0, 0, ctx2.canvas.width, ctx2.canvas.height);
-  ctx2.fillStyle = targetDoc.background || '#ffffff';
-  ctx2.fillRect(0, 0, ctx2.canvas.width, ctx2.canvas.height);
+  ctx2.translate(padPx, padPx); // editor: shift so label origin starts after margin
   ctx2.scale(scale, scale); // now drawing units == mm
 
-  // Print/export must never include anything outside the label bounds.
-  // The editor intentionally leaves this unclipped so overflowing text stays
-  // visible and editable, but the exported/printed bitmap is clipped to the page.
   if (forExport) {
+    // Print/export: exact label bitmap, clipped to page bounds.
+    ctx2.fillStyle = targetDoc.background || '#ffffff';
+    ctx2.fillRect(0, 0, targetDoc.width, targetDoc.height);
     ctx2.beginPath();
     ctx2.rect(0, 0, targetDoc.width, targetDoc.height);
     ctx2.clip();
+  } else {
+    // Editor: draw a soft "outside the page" backdrop, then the white page.
+    ctx2.fillStyle = '#eef1f6';
+    ctx2.fillRect(-EDITOR_PAD_MM, -EDITOR_PAD_MM,
+      targetDoc.width + EDITOR_PAD_MM * 2, targetDoc.height + EDITOR_PAD_MM * 2);
+    ctx2.fillStyle = targetDoc.background || '#ffffff';
+    ctx2.fillRect(0, 0, targetDoc.width, targetDoc.height);
   }
 
   if (!forExport && showGrid && gridSize > 0) {
@@ -153,10 +165,31 @@ function render(ctx2, targetDoc, scale, opts = {}) {
   }
   for (const el of targetDoc.elements) {
     if (el.hidden) continue; // hidden elements are not drawn or exported
-    drawElement(ctx2, el, scale, { forExport, record, batchEnabled });
+    if (!forExport && elementOverflows(el, targetDoc)) {
+      // Overflowing elements: draw inside page normally, and the overflowing
+      // part semi-transparent so it is clearly "outside the printable area".
+      ctx2.save();
+      ctx2.beginPath();
+      ctx2.rect(0, 0, targetDoc.width, targetDoc.height);
+      ctx2.clip();
+      drawElement(ctx2, el, scale, { forExport, record, batchEnabled });
+      ctx2.restore();
+      ctx2.save();
+      ctx2.globalAlpha = 0.28;
+      drawElement(ctx2, el, scale, { forExport, record, batchEnabled });
+      ctx2.restore();
+    } else {
+      drawElement(ctx2, el, scale, { forExport, record, batchEnabled });
+    }
   }
   if (!forExport && showGuides) drawGuides(ctx2, scale);
   ctx2.restore();
+}
+// True when an element sticks out beyond the label rectangle (axis-aligned bounds).
+function elementOverflows(el, d) {
+  const x1 = Math.min(el.x, el.x + el.w), x2 = Math.max(el.x, el.x + el.w);
+  const y1 = Math.min(el.y, el.y + el.h), y2 = Math.max(el.y, el.y + el.h);
+  return x1 < -0.05 || y1 < -0.05 || x2 > d.width + 0.05 || y2 > d.height + 0.05;
 }
 
 function resolvedValue(raw, record, batchEnabled, el) {
@@ -664,7 +697,10 @@ function rotateHandleScreen(el) {
 function eventToMm(evt) {
   const r = canvas.getBoundingClientRect();
   const s = scaleFactor();
-  return { x: (evt.clientX - r.left) / s, y: (evt.clientY - r.top) / s };
+  return {
+    x: (evt.clientX - r.left) / s - EDITOR_PAD_MM,
+    y: (evt.clientY - r.top) / s - EDITOR_PAD_MM
+  };
 }
 function pointInElement(el, p) {
   const cx = el.x + el.w / 2, cy = el.y + el.h / 2;
@@ -1203,9 +1239,10 @@ function drawRulers() {
   c1.fillStyle = '#eef1f4'; c1.fillRect(0, 0, rhW, 22);
   c1.strokeStyle = '#8a95a5'; c1.fillStyle = '#5b6675'; c1.font = '9px Segoe UI';
   c1.textAlign = 'center'; c1.textBaseline = 'top';
-  // label left edge = center of canvas wrap
+  // label left edge = canvas wrap left + editor pad (wrap includes margin)
   const wrap = $('#canvasWrap');
-  const left = wrap ? wrap.offsetLeft - $('#canvasScroll').scrollLeft : 0;
+  const padPx = Math.round(EDITOR_PAD_MM * s);
+  const left = wrap ? wrap.offsetLeft + padPx - $('#canvasScroll').scrollLeft : 0;
   const step = s * 10; // every 10mm
   if (step > 6) {
     for (let mm = 0; mm <= doc.width + 10; mm += 10) {
@@ -1227,7 +1264,7 @@ function drawRulers() {
   c2.fillStyle = '#eef1f4'; c2.fillRect(0, 0, 22, rvH);
   c2.strokeStyle = '#8a95a5'; c2.fillStyle = '#5b6675'; c2.font = '9px Segoe UI';
   c2.textAlign = 'center'; c2.textBaseline = 'middle';
-  const top = wrap ? wrap.offsetTop - $('#canvasScroll').scrollTop : 0;
+  const top = wrap ? wrap.offsetTop + padPx - $('#canvasScroll').scrollTop : 0;
   if (step > 6) {
     for (let mm = 0; mm <= doc.height + 10; mm += 10) {
       const y = top + mm * s;
