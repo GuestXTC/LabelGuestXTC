@@ -22,7 +22,7 @@
     "appId": "com.labelguestxtc.designer",
     "productName": "LabelGuestXTC",
     "copyright": "Copyright © LabelGuestXTC contributors",
-    "icon": "build/icon.png",
+    "icon": "assets/icon/icon-256.png",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -34,7 +34,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico",
+      "icon": "assets/icon/icon.ico",
       "signAndEditExecutable": false,
       "artifactName": "LabelGuestXTC-Setup-${version}.${ext}"
     },

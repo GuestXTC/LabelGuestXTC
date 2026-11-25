@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { PNG } = require('pngjs');
 
-const OUT_DIR = path.join(__dirname, '..', 'build', 'icons');
+const OUT_DIR = path.join(__dirname, '..', 'assets', 'icon');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const SIZES = [16, 24, 32, 48, 64, 128, 256];
