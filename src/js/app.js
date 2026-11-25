@@ -2020,9 +2020,9 @@ function serializeToDDL(targetDoc) {
     } else if (e.type === 'rect' || e.type === 'ellipse' || e.type === 'triangle') {
       // Shapes: itemtype 2, radius>0 = ellipse. Triangle has no native
       // type here — save as a plain rect (shown as a rectangle).
-      L.push(`   <drawobj${base}${attr('itemtype', '2')}${attr('radius', e.type === 'ellipse' ? '1' : '0')}${attr('linetype', '0')}${attr('linewidth', (e.strokeWidth || 0.4) * 10)}${attr('pattern', '0')}></drawobj>`);
+      L.push(`   <drawobj${base}${attr('itemtype', '2')}${attr('radius', e.type === 'ellipse' ? '1' : '0')}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}${attr('pattern', '0')}></drawobj>`);
     } else if (e.type === 'line') {
-      L.push(`   <drawobj${base}${attr('itemtype', '1')}${attr('linestartx', round(e.x))}${attr('linestarty', round(e.y))}${attr('linelength', round(Math.hypot(e.w, e.h)))}${attr('linedegree', round(Math.atan2(e.h, e.w) * 180 / Math.PI))}${attr('linetype', '0')}${attr('linewidth', (e.strokeWidth || 0.4) * 10)}></drawobj>`);
+      L.push(`   <drawobj${base}${attr('itemtype', '1')}${attr('linestartx', round(e.x))}${attr('linestarty', round(e.y))}${attr('linelength', round(Math.hypot(e.w, e.h)))}${attr('linedegree', round(Math.atan2(e.h, e.w) * 180 / Math.PI))}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}></drawobj>`);
     } else if (e.type === 'table') {
       // Emit grid cells with merge spans (crossColumns/crossRows) and real
       // per-column widths so the same layout is preserved on reopen.
@@ -2143,7 +2143,8 @@ function parseDDL(xmlText) {
       rotation: num(g('rotate', 'rotation')), zvalue: num(m.zvalue, 0)
     };
     const vals = textValues(obj);
-    const lineW = Math.max(0.2, num(g('linewidth', 'tablelinewidth'), 0.3) / 10);
+    // DLabel stores line width in mm directly; no /10 scaling.
+    const lineW = Math.max(0.1, num(g('linewidth', 'tablelinewidth'), 0.3));
 
     if (it === '5' || (it == null && vals.length)) {
       // Alignment codes seen in real files (0..4). 1 and 4 both render
