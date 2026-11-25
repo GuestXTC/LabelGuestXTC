@@ -1732,6 +1732,27 @@ $('#showGuides').onchange = (e) => { showGuides = e.target.checked; renderCanvas
 
 /* ---------------- align bar ---------------- */
 $$('.ab-btn[data-align]').forEach(b => { b.onclick = () => alignElements(b.dataset.align); });
+
+// Batch-set the stroke width of every line/shape in the current label.
+// Table grid lines use borderWidth, so they are updated too.
+function applyLineWidthToAll() {
+  const inp = $('#batchLineWidth');
+  const w = parseFloat(inp && inp.value);
+  if (!isFinite(w) || w <= 0) { toast('请输入有效的线宽（>0 mm）'); return; }
+  let n = 0;
+  for (const el of doc.elements) {
+    if (el.type === 'line' || el.type === 'rect' || el.type === 'ellipse' || el.type === 'triangle') {
+      el.strokeWidth = w; n++;
+    } else if (el.type === 'table') {
+      el.borderWidth = w; n++;
+    }
+  }
+  if (!n) { toast('本标签没有线条或图形'); return; }
+  commit();
+  refreshAll();
+  toast(`已把 ${n} 个线条/图形的线宽设为 ${w} mm`);
+}
+if ($('#btnApplyLineWidth')) $('#btnApplyLineWidth').onclick = applyLineWidthToAll;
 if ($('#abLock')) $('#abLock').onclick = toggleLock;
 if ($('#abHide')) $('#abHide').onclick = toggleHidden;
 if ($('#abPaste')) $('#abPaste').onclick = pasteClipboard;
