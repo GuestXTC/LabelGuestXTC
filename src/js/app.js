@@ -2821,7 +2821,37 @@ if ($('#winMax')) $('#winMax').onclick = () => { if (api && api.win) api.win.max
 if ($('#winClose')) $('#winClose').onclick = () => { if (api && api.win) api.win.close(); };
 
 /* ---------------- init ---------------- */
+// Check GitHub for a newer release and show a non-blocking banner if found.
+// Runs silently offline; failures are ignored on purpose.
+function checkForUpdate() {
+  if (!api || !api.app || !api.app.checkUpdate) return;
+  api.app.checkUpdate().then(r => {
+    if (!r || !r.update) return;
+    const box = $('#updateToast');
+    const txt = $('#updateText');
+    if (!box || !txt) return;
+    txt.textContent = `发现新版本 v${r.version}（当前 v${r.current}），点击下载`;
+    box.dataset.url = r.url || '';
+    box.hidden = false;
+  }).catch(() => {});
+}
+function bindUpdateToast() {
+  const box = $('#updateToast');
+  if (!box) return;
+  const openBtn = $('#updateOpen'), closeBtn = $('#updateClose');
+  if (openBtn) openBtn.onclick = () => {
+    const url = box.dataset.url;
+    if (url && api && api.app && api.app.openExternal) api.app.openExternal(url);
+    else if (url) window.open(url, '_blank');
+    box.hidden = true;
+  };
+  if (closeBtn) closeBtn.onclick = () => { box.hidden = true; };
+}
+
 function init() {
+  bindUpdateToast();
+  // Defer the network check so it never delays first paint.
+  setTimeout(checkForUpdate, 1200);
   // Start with NO document tab (no stray "未命名标签"). A blank working doc
   // still exists in memory so the canvas can render, but it has no tab until
   // the user opens a file or clicks the + button.

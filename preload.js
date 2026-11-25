@@ -27,7 +27,9 @@ const api = {
   },
   app: {
     version: () => ipcRenderer.invoke('app:version'),
-    userData: () => ipcRenderer.invoke('app:userData')
+    userData: () => ipcRenderer.invoke('app:userData'),
+    checkUpdate: () => ipcRenderer.invoke('app:check-update'),
+    openExternal: (url) => ipcRenderer.invoke('app:open-external', url)
   },
   assoc: {
     status: () => ipcRenderer.invoke('assoc:status'),

@@ -53,6 +53,7 @@
     <symbol id="i-sh" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 13v8M15 13v8M6 19l3 3 3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-2-5.3M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
   </defs>
 </svg>
 
@@ -456,6 +457,12 @@
 </div>
 
 <div id="toast" class="toast"></div>
+<div id="updateToast" class="update-toast" hidden>
+  <svg class="i"><use href="#i-info"/></svg>
+  <span id="updateText">发现新版本</span>
+  <button id="updateOpen" title="打开下载页面">查看</button>
+  <button id="updateClose" title="关闭提示">✕</button>
+</div>
 <script src="js/app.js"></script>
 </body>
 </html>

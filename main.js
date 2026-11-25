@@ -2,7 +2,7 @@
 // Responsible for: app lifecycle, native dialogs, filesystem (JSON / exports),
 // and sending label canvases to the system printer / PDF.
 
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -461,8 +461,62 @@ ipcMain.handle('print:labels', async (event, payload) => {
   });
 });
 
+ipcMain.handle('app:open-external', async (event, url) => {
+  if (typeof url === 'string' && /^https?:\/\//i.test(url)) { shell.openExternal(url); return { ok: true }; }
+  return { ok: false };
+});
 ipcMain.handle('app:version', async () => app.getVersion());
 ipcMain.handle('app:userData', async () => app.getPath('userData'));
+
+// ---- Update check -------------------------------------------------------
+// Silently asks GitHub for the latest release. Never blocks startup: a short
+// timeout and swallowed errors keep the app fully offline-friendly.
+const https = require('https');
+function compareVersions(a, b) {
+  const na = String(a || '').replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+  const nb = String(b || '').replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(na.length, nb.length); i++) {
+    const x = na[i] || 0, y = nb[i] || 0;
+    if (x !== y) return x > y ? 1 : -1;
+  }
+  return 0;
+}
+ipcMain.handle('app:check-update', async () => {
+  const current = app.getVersion();
+  return await new Promise(resolve => {
+    const req = https.get({
+      hostname: 'api.github.com',
+      path: '/repos/GuestXTC/LabelGuestXTC/releases/latest',
+      headers: {
+        'User-Agent': 'LabelGuestXTC',
+        'Accept': 'application/vnd.github+json'
+      },
+      timeout: 6000
+    }, res => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => { body += chunk; if (body.length > 200000) req.destroy(); });
+      res.on('end', () => {
+        try {
+          if (res.statusCode !== 200) return resolve({ update: false });
+          const rel = JSON.parse(body);
+          const latest = String(rel.tag_name || '').replace(/^v/, '');
+          if (!latest) return resolve({ update: false });
+          const hasUpdate = compareVersions(latest, current) > 0;
+          resolve({
+            update: hasUpdate,
+            version: latest,
+            current,
+            url: rel.html_url || 'https://github.com/GuestXTC/LabelGuestXTC/releases',
+            name: rel.name || ('v' + latest)
+          });
+        } catch (e) { resolve({ update: false }); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); resolve({ update: false }); });
+    req.on('error', () => { resolve({ update: false }); });
+  });
+});
 
 // ---- File association repair -------------------------------------------
 // NSIS registers the LabelGuestXTC File ProgID at install time, but a
