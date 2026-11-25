@@ -11,11 +11,11 @@ const { execFileSync } = require('child_process');
 let mainWindow = null;
 
 // ---- File association / open-with ---------------------------------------
-// When a .ddl / .json file is double-clicked (or "Open with" is used), Windows
+// When a .ddl / .xtc file is double-clicked (or "Open with" is used), Windows
 // launches the app with the file path in argv. Collect those paths and send
 // them to the renderer once the window is ready.
 function pathsFromArgv(argv) {
-  return (argv || []).filter(p => typeof p === 'string' && /\.(ddl|xtc|json)$/i.test(p) && fs.existsSync(p));
+  return (argv || []).filter(p => typeof p === 'string' && /\.(ddl|xtc)$/i.test(p) && fs.existsSync(p));
 }
 let pendingOpenPaths = pathsFromArgv(process.argv);
 // macOS "open file" events
@@ -159,17 +159,16 @@ ipcMain.handle('ddl:open', async () => {
   } catch (e) { return { ok: false, error: e.message }; }
 });
 
-// Unified open: accepts both .ddl (XML) and .json (our own format). The
+// Unified open: accepts both .ddl (XML) and .xtc (our own format). The
 // renderer decides which parser to use based on the content, so "打开" and
 // "导入" can never diverge again.
 ipcMain.handle('file:open-any', async () => {
   const res = await dialog.showOpenDialog(mainWindow, {
     title: '打开标签文件',
     filters: [
-      { name: '标签文件 (*.xtc, *.ddl, *.json)', extensions: ['xtc', 'ddl', 'json'] },
+      { name: '标签文件 (*.xtc, *.ddl)', extensions: ['xtc', 'ddl'] },
       { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
       { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] },
-      { name: '标签 JSON (*.json)', extensions: ['json'] },
       { name: '所有文件', extensions: ['*'] }
     ],
     properties: ['openFile']
@@ -198,35 +197,20 @@ ipcMain.handle('file:save-as', async (event, payload) => {
   const base = (payload.name || '标签').replace(/[\\/:*?"<>|]/g, '_');
   const res = await dialog.showSaveDialog(mainWindow, {
     title: '另存为',
-    defaultPath: base + '.' + (payload.defaultType === 'ddl' ? 'ddl' : (payload.defaultType === 'json' ? 'json' : 'xtc')),
+    defaultPath: base + '.' + (payload.defaultType === 'ddl' ? 'ddl' : 'xtc'),
     filters: [
       { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
-      { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] },
-      { name: '标签 JSON (*.json)', extensions: ['json'] }
+      { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] }
     ]
   });
   if (res.canceled) return { ok: false };
   const ext = path.extname(res.filePath).toLowerCase();
-  // .xtc is our native format with JSON content.
-  // Any non-ddl/non-json extension maps to the native type.
-  const type = ext === '.ddl' ? 'ddl' : (ext === '.json' ? 'json' : 'xtc');
+  // .xtc is our native format. Any non-ddl extension maps to the native type.
+  const type = ext === '.ddl' ? 'ddl' : 'xtc';
   const content = type === 'ddl' ? payload.ddlXml : JSON.stringify(payload.doc, null, 2);
   try {
     fs.writeFileSync(res.filePath, content, 'utf8');
     return { ok: true, file: res.filePath, type };
-  } catch (e) { return { ok: false, error: e.message }; }
-});
-
-ipcMain.handle('file:open-json', async () => {
-  const res = await dialog.showOpenDialog(mainWindow, {
-    title: '打开标签 JSON 文件',
-    filters: [{ name: '标签 JSON', extensions: ['json'] }],
-    properties: ['openFile']
-  });
-  if (res.canceled || !res.filePaths.length) return { ok: false };
-  try {
-    const text = readLabelFile(res.filePaths[0]);
-    return { ok: true, path: res.filePaths[0], text, doc: JSON.parse(text.replace(/^\uFEFF/, '')) };
   } catch (e) { return { ok: false, error: e.message }; }
 });
 
@@ -486,7 +470,7 @@ ipcMain.handle('app:userData', async () => app.getPath('userData'));
 // These handlers let the user repair the association with one click, using
 // HKCU (per-user) registry writes so no administrator rights are needed.
 const ASSOC_PROGID = 'LabelGuestXTC File';
-const ASSOC_EXTS = ['xtc', 'ddl', 'json'];
+const ASSOC_EXTS = ['xtc', 'ddl'];
 
 function regQueryHKCU(subKey) {
   try {

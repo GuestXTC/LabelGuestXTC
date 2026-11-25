@@ -11,7 +11,6 @@ const api = {
     read: (filePath) => ipcRenderer.invoke('file:read', filePath),
     saveTo: (filePath, content) => ipcRenderer.invoke('file:save-to', { path: filePath, content }),
     saveAs: (name, doc, ddlXml, defaultType) => ipcRenderer.invoke('file:save-as', { name, doc, ddlXml, defaultType }),
-    openJson: () => ipcRenderer.invoke('file:open-json'),
     openDdl: () => ipcRenderer.invoke('ddl:open')
   },
   data: {

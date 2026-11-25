@@ -1820,7 +1820,7 @@ function toast(msg) {
 
 /* ---------------- file: new / save / save-as ---------------- */
 // currentFile tracks the last opened/saved file so "Save" can overwrite it.
-let currentFile = null; // { path, type: 'json'|'ddl' }
+let currentFile = null; // { path, type: 'xtc'|'ddl' }
 
 /* ---------------- document tabs (multi-document) ---------------- */
 // Each tab owns a full document session. The existing global variables (doc,
@@ -1963,8 +1963,8 @@ async function saveAsFlow() {
   toast('已另存为 ' + r.type.toUpperCase() + ': ' + r.file);
 }
 
-// "导入" shares the same content-based loader as "打开DDL", so it accepts
-// both .ddl and .json and records the file path for overwrite-save.
+// "导入" shares the same content-based loader as "打开", so it accepts
+// both .ddl and .xtc and records the file path for overwrite-save.
 $('#btnImportJson').onclick = () => openDocument();
 
 function applyDoc(newDoc, file) {
@@ -2259,8 +2259,8 @@ function loadDocumentText(text, filePath) {
   if (s.charAt(0) === '{' || s.charAt(0) === '[') {
     const j = JSON.parse(s);
     const d = Array.isArray(j) ? j[0] : j;
-    if (!d || typeof d !== 'object' || !Array.isArray(d.elements)) throw new Error('JSON 不是有效的标签文档');
-    return { doc: normalizeDoc(d), type: 'json' };
+    if (!d || typeof d !== 'object' || !Array.isArray(d.elements)) throw new Error('不是有效的标签文档');
+    return { doc: normalizeDoc(d), type: 'xtc' };
   }
   return { doc: parseDDL(s), type: 'ddl' };
 }
@@ -2299,7 +2299,7 @@ async function openDocument() {
 
 $('#btnOpenDdl').onclick = () => openDocument();
 
-// Double-clicked .ddl / .json (file association) -> main sends the path here.
+// Double-clicked .ddl / .xtc (file association) -> main sends the path here.
 if (api && api.onOpenPath) {
   api.onOpenPath(async (filePath) => {
     if (!filePath) return;
@@ -2323,7 +2323,7 @@ function bindDragOpen() {
     if (!files || !files.length) return;
     const p = files[0].path;
     if (!p) { toast('无法读取拖入文件路径，请使用「打开」按钮'); return; }
-    if (!/\.(ddl|xtc|json)$/i.test(p)) { toast('只支持 .xtc、.ddl 和 .json 文件'); return; }
+    if (!/\.(ddl|xtc)$/i.test(p)) { toast('只支持 .xtc 和 .ddl 文件'); return; }
     try { loadFromOpenResult(await api.file.read(p)); }
     catch (err) { toast('打开失败：' + err.message); }
   }, false);
@@ -2814,7 +2814,7 @@ function init() {
   if (api && api.app) api.app.version().then(v => { if (v) $('#versionTag').textContent = 'v' + v; }).catch(() => {});
   if ($('#printerSelect')) refreshPrinters();
 
-  // File association repair: double-clicking .ddl/.xtc/.json should open this app.
+  // File association repair: double-clicking .ddl/.xtc should open this app.
   const fixBtn = $('#btnFixAssoc');
   const assocTip = $('#assocTip');
   if (fixBtn && api && api.assoc) {

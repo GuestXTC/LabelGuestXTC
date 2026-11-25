@@ -18,11 +18,11 @@
 
 | 平台 | 下载地址 |
 |------|----------|
-| Windows | [安装包 .exe](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.3/LabelGuestXTC-Setup-4.5.3.exe) |
-| macOS | [Apple 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.3/LabelGuestXTC-4.5.3-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.3/LabelGuestXTC-4.5.3-x64.dmg) |
-| Linux | [AppImage](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.3/LabelGuestXTC-4.5.3-x86_64.AppImage) · [.deb](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.3/LabelGuestXTC-4.5.3-amd64.deb) |
+| Windows | [安装包 .exe](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.4/LabelGuestXTC-Setup-4.5.4.exe) |
+| macOS | [Apple 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.4/LabelGuestXTC-4.5.4-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.4/LabelGuestXTC-4.5.4-x64.dmg) |
+| Linux | [AppImage](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.4/LabelGuestXTC-4.5.4-x86_64.AppImage) · [.deb](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.5.4/LabelGuestXTC-4.5.4-amd64.deb) |
 
-全部版本见 [Releases 页面](https://github.com/GuestXTC/LabelGuestXTC/releases/tag/v4.5.3)。
+全部版本见 [Releases 页面](https://github.com/GuestXTC/LabelGuestXTC/releases/tag/v4.5.4)。
 
 ---
 
@@ -75,7 +75,7 @@
 - 导入后可继续在本工具中编辑、批量打印、导出
 - **编码兼容**：UTF-8（含/不含 BOM）、UTF-16 LE/BE（含/不含 BOM）、GBK/GB18030 都能正确识别，中文不会乱码
 - **容错解析**：对标签名大小写、根节点名、属性别名、未知元素类型均做兼容，不会因为格式细微差异变成空白画布
-- **「打开」与「导入」共用同一个内容识别入口**，两者都能打开 XML 与 JSON 标签文件；也可以直接把文件拖到窗口里打开
+- **「打开」与「导入」共用同一个内容识别入口**，两者都能打开 `.xtc` 原生标签与 `.ddl` XML 标签文件；也可以直接把文件拖到窗口里打开
 - 解析失败会在状态栏和提示条明确显示原因，不再静默留白
 - **文字对齐精确还原**：居中/左/右对齐（alignment 4/1/2）精确保留，渲染采用手动测量定位，不受字体压缩影响
 - 界面字号整体放大、控件加大，视觉更清晰
@@ -94,7 +94,7 @@
 > **平台说明**：标签机 TSPL 原始指令直发依赖 Windows RAW 端口，目前**仅在 Windows 可用**；macOS / Linux 版本支持设计、导出 PNG/PDF 与系统打印，TSPL 直发功能暂不可用（欢迎贡献适配）。
 
 ### 存储与输出
-- 保存/打开本项目的 `.json` 标签文件（无内置模板库）
+- 保存/打开本项目的 `.xtc` 标签文件（无内置模板库）
 - 导出 **PNG**（300 DPI）、**PDF**（每张标签一页）
 
 ---
