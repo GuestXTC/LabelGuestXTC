@@ -22,7 +22,7 @@
     "appId": "com.labelguestxtc.designer",
     "productName": "LabelGuestXTC",
     "copyright": "Copyright © LabelGuestXTC contributors",
-    "icon": "assets/icon/icon-256.png",
+    "icon": "assets/icon/icon-512.png",
     "directories": {
       "output": "dist",
       "buildResources": "build"

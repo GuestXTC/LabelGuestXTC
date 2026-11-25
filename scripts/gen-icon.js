@@ -11,7 +11,7 @@ const { PNG } = require('pngjs');
 const OUT_DIR = path.join(__dirname, '..', 'assets', 'icon');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-const SIZES = [16, 24, 32, 48, 64, 128, 256];
+const SIZES = [16, 24, 32, 48, 64, 128, 256, 512];
 const BG = [29, 158, 117];      // #1D9E75 green
 const WHITE = [255, 255, 255];
 const SS = 4;                    // supersample factor
