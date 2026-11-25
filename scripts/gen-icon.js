@@ -1,6 +1,6 @@
 /*
  * Generate the LabelGuestXTC app icon (original, no third-party assets).
- * Design "option 2": rounded green square + white label outline + text lines.
+ * Design "option 4": rounded black square + white perforated label with text.
  * Renders at 4x supersampling for clean edges, writes multi-size PNGs and a
  * Windows ICO container (ICO entries can embed raw PNG data).
  */
@@ -12,13 +12,23 @@ const OUT_DIR = path.join(__dirname, '..', 'assets', 'icon');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const SIZES = [16, 24, 32, 48, 64, 128, 256, 512];
-const BG = [29, 158, 117];      // #1D9E75 green
+const BG = [44, 44, 42];        // #2C2C2A black
 const WHITE = [255, 255, 255];
 const SS = 4;                    // supersample factor
 
-// Signed distance-ish helpers, all in normalized 0..1 coordinates.
+const U = 1 / 88;
+// Label box: x 34..70, y 20..68, radius 4, stroke 4.5px
+const BOX = { x0: 34 * U, y0: 20 * U, x1: 70 * U, y1: 68 * U, r: 4 * U, hw: 2.25 * U };
+// Two perforation holes on the left (centers + radius)
+const HOLES = [{ cx: 24 * U, cy: 30 * U, r: 6 * U }, { cx: 24 * U, cy: 58 * U, r: 6 * U }];
+// Three text lines inside the box
+const LINES = [
+  { x0: 42 * U, x1: 62 * U, y: 34 * U, hw: 1.8 * U },
+  { x0: 42 * U, x1: 62 * U, y: 44 * U, hw: 1.8 * U },
+  { x0: 42 * U, x1: 54 * U, y: 54 * U, hw: 1.8 * U }
+];
+
 function roundedRectSDF(x, y, x0, y0, x1, y1, r) {
-  // returns <=0 inside; approximate via simple test (anti-alias by coverage)
   const cx = Math.max(x0 + r, Math.min(x, x1 - r));
   const cy = Math.max(y0 + r, Math.min(y, y1 - r));
   const dx = x - cx, dy = y - cy;
@@ -30,7 +40,7 @@ function roundedRectSDF(x, y, x0, y0, x1, y1, r) {
   }
   return Math.hypot(dx, dy) - r;
 }
-function coverage(sd, px) { // sd in normalized units, px = 1 pixel in normalized units
+function coverage(sd, px) {
   return Math.max(0, Math.min(1, 0.5 - sd / px));
 }
 
@@ -38,13 +48,8 @@ function makePNG(size) {
   const n = size * SS;
   const px = 1 / n;
   const png = new PNG({ width: n, height: n });
-  // Background: transparent buffer, rounded square drawn below.
-  for (let yy = 0; yy < n; yy++) {
-    for (let xx = 0; xx < n; xx++) {
-      const i = (yy * n + xx) * 4;
-      png.data[i] = 0; png.data[i + 1] = 0; png.data[i + 2] = 0; png.data[i + 3] = 0;
-    }
-  }
+  for (let i = 0; i < png.data.length; i++) png.data[i] = 0;
+
   const blend = (xx, yy, color, a) => {
     if (a <= 0) return;
     const i = (yy * n + xx) * 4;
@@ -57,49 +62,55 @@ function makePNG(size) {
     png.data[i + 3] = Math.round(na * 255);
   };
 
-  // 1) rounded square background, radius 0.20, inset small margin
+  // 1) rounded square background
   const M = 0.02;
   for (let yy = 0; yy < n; yy++) {
     const y = (yy + 0.5) / n;
     for (let xx = 0; xx < n; xx++) {
       const x = (xx + 0.5) / n;
-      const sd = roundedRectSDF(x, y, M, M, 1 - M, 1 - M, 0.20);
-      const a = coverage(sd, px);
+      const a = coverage(roundedRectSDF(x, y, M, M, 1 - M, 1 - M, 0.20), px);
       if (a > 0) blend(xx, yy, BG, a);
     }
   }
 
-  // 2) white label outline: rounded rect stroke. Draw as ring using SDF diff.
-  const strokeW = 0.055; // normalized
+  // 2) two white perforation holes (filled circles)
   for (let yy = 0; yy < n; yy++) {
     const y = (yy + 0.5) / n;
     for (let xx = 0; xx < n; xx++) {
       const x = (xx + 0.5) / n;
-      const outer = roundedRectSDF(x, y, 0.19, 0.25, 0.81, 0.75, 0.055);
-      const inner = roundedRectSDF(x, y, 0.19 + strokeW, 0.25 + strokeW, 0.81 - strokeW, 0.75 - strokeW, 0.02);
-      // ring = inside outer AND outside inner
+      for (const h of HOLES) {
+        const d = Math.hypot(x - h.cx, y - h.cy) - h.r;
+        const a = coverage(d, px);
+        if (a > 0) blend(xx, yy, WHITE, a);
+      }
+    }
+  }
+
+  // 3) white label box outline (ring)
+  for (let yy = 0; yy < n; yy++) {
+    const y = (yy + 0.5) / n;
+    for (let xx = 0; xx < n; xx++) {
+      const x = (xx + 0.5) / n;
+      const outer = roundedRectSDF(x, y, BOX.x0, BOX.y0, BOX.x1, BOX.y1, BOX.r);
+      const inner = roundedRectSDF(x, y, BOX.x0 + BOX.hw * 2, BOX.y0 + BOX.hw * 2,
+        BOX.x1 - BOX.hw * 2, BOX.y1 - BOX.hw * 2, Math.max(0.001, BOX.r - BOX.hw * 2));
       const ring = Math.max(outer, -inner);
       const a = coverage(ring, px);
       if (a > 0) blend(xx, yy, WHITE, a);
     }
   }
 
-  // 3) three white text lines inside the label
-  const lines = [
-    { x0: 0.30, x1: 0.70, y0: 0.36, y1: 0.40 },
-    { x0: 0.30, x1: 0.70, y0: 0.47, y1: 0.51 },
-    { x0: 0.30, x1: 0.58, y0: 0.58, y1: 0.62 }
-  ];
-  for (const L of lines) {
+  // 4) three white text lines
+  for (const L of LINES) {
     for (let yy = 0; yy < n; yy++) {
       const y = (yy + 0.5) / n;
-      if (y < L.y0 - px || y > L.y1 + px) continue;
+      if (y < L.y - L.hw - px || y > L.y + L.hw + px) continue;
       for (let xx = 0; xx < n; xx++) {
         const x = (xx + 0.5) / n;
-        const sx = Math.max(L.x0 - x, 0, x - L.x1);
-        const sy = Math.max(L.y0 - y, 0, y - L.y1);
-        const sd = Math.hypot(sx, sy);
-        const a = coverage(sd, px);
+        const dx = Math.max(L.x0 - x, 0, x - L.x1);
+        const dy = Math.max(Math.abs(y - L.y) - 0, 0);
+        const d = Math.hypot(dx, dy) - L.hw;
+        const a = coverage(d, px);
         if (a > 0) blend(xx, yy, WHITE, a);
       }
     }
@@ -132,34 +143,30 @@ function makePNG(size) {
   return out;
 }
 
-// Write PNGs, collect buffers for ICO.
 const entries = [];
 for (const size of SIZES) {
-  const png = makePNG(size);
-  const buf = PNG.sync.write(png, { colorType: 6 });
-  const file = path.join(OUT_DIR, `icon-${size}.png`);
-  fs.writeFileSync(file, buf);
+  const buf = PNG.sync.write(makePNG(size), { colorType: 6 });
+  fs.writeFileSync(path.join(OUT_DIR, `icon-${size}.png`), buf);
   entries.push({ size, buf });
   console.log(`PNG ${size}x${size}: ${buf.length} bytes`);
 }
 
-// Build ICO: header (6 bytes) + directory entries (16 bytes each) + image data.
 const icoHeader = Buffer.alloc(6);
-icoHeader.writeUInt16LE(0, 0);       // reserved
-icoHeader.writeUInt16LE(1, 2);       // type: icon
+icoHeader.writeUInt16LE(0, 0);
+icoHeader.writeUInt16LE(1, 2);
 icoHeader.writeUInt16LE(entries.length, 4);
 const dir = Buffer.alloc(16 * entries.length);
 let offset = 6 + 16 * entries.length;
 entries.forEach((e, i) => {
   const d = i * 16;
-  dir[d] = e.size >= 256 ? 0 : e.size;      // width (0 means 256)
-  dir[d + 1] = e.size >= 256 ? 0 : e.size;  // height
-  dir[d + 2] = 0;                            // palette
-  dir[d + 3] = 0;                            // reserved
-  dir.writeUInt16LE(1, d + 4);               // color planes
-  dir.writeUInt16LE(32, d + 6);              // bits per pixel
-  dir.writeUInt32LE(e.buf.length, d + 8);    // size of image data
-  dir.writeUInt32LE(offset, d + 12);         // offset
+  dir[d] = e.size >= 256 ? 0 : e.size;
+  dir[d + 1] = e.size >= 256 ? 0 : e.size;
+  dir[d + 2] = 0;
+  dir[d + 3] = 0;
+  dir.writeUInt16LE(1, d + 4);
+  dir.writeUInt16LE(32, d + 6);
+  dir.writeUInt32LE(e.buf.length, d + 8);
+  dir.writeUInt32LE(offset, d + 12);
   offset += e.buf.length;
 });
 const ico = Buffer.concat([icoHeader, dir, ...entries.map(e => e.buf)]);
