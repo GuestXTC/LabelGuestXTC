@@ -48,21 +48,22 @@ function defaultElement(type) {
   const base = { id: uid(), type, name: typeName(type), x: 8, y: 8, w: 40, h: 16, rotation: 0, field: '', locked: false, hidden: false };
   switch (type) {
     case 'text':    return Object.assign(base, { text: '双击编辑文本', fontFamily: 'Microsoft YaHei', fontSize: 5, bold: false, italic: false, underline: false, strike: false, inverse: false, letterSpacing: 0, lineSpacing: 1.15, color: '#111111', align: 'left' });
-    case 'barcode': return Object.assign(base, { w: 60, h: 20, value: '123456789012', format: 'CODE128', displayValue: true, lineColor: '#111111' });
-    case 'qrcode':  return Object.assign(base, { w: 25, h: 25, value: 'https://example.com', ec: 'M' });
+    case 'barcode': return Object.assign(base, { w: 60, h: 20, value: '123456789012', format: 'CODE128', displayValue: true, lineColor: '#111111', textPosition: 'bottom', moduleWidth: 2, textGap: 0 });
+    case 'qrcode':  return Object.assign(base, { w: 25, h: 25, value: 'https://example.com', ec: 'M', symbolVersion: 'auto', charset: 'ANSI', textPosition: 'none' });
     case 'image':   return Object.assign(base, { w: 30, h: 30, src: '', grayscale: false, opacity: 1 });
     case 'rect':    return Object.assign(base, { w: 40, h: 24, fill: '#ffffff', stroke: '#111111', strokeWidth: 0.4, radius: 0 });
     case 'ellipse': return Object.assign(base, { w: 30, h: 30, fill: '#ffffff', stroke: '#111111', strokeWidth: 0.4 });
     case 'triangle':return Object.assign(base, { w: 30, h: 26, fill: '#ffffff', stroke: '#111111', strokeWidth: 0.4 });
     case 'line':    return Object.assign(base, { w: 40, h: 0, stroke: '#111111', strokeWidth: 0.4 });
-    case 'table':   return Object.assign(base, { w: 60, h: 24, rows: 3, cols: 3, colRatios: [1,1,1], rowRatios: [1,1,1], borderWidth: 0.3, borderColor: '#111111', merges: [] });
+    case 'blackout':return Object.assign(base, { w: 30, h: 20, fill: '#000000', radius: 0 });
+    case 'table':   return Object.assign(base, { w: 60, h: 24, rows: 3, cols: 3, colRatios: [1,1,1], rowRatios: [1,1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111' });
     case 'date':    return Object.assign(base, { type: 'text', name: '日期时间', dynamic: 'date', text: 'YYYY-MM-DD', w: 40, h: 10, fontFamily: 'Microsoft YaHei', fontSize: 5, color: '#111111', align: 'left', dateFormat: 'YYYY-MM-DD', dateUnit: 'day', dateStep: 0 });
     default:        return base;
   }
 }
 
 function typeName(t) {
-  return ({ text: '文本', barcode: '一维码', qrcode: '二维码', image: '图片', rect: '矩形', ellipse: '椭圆', triangle: '三角形', line: '线条', table: '表格' })[t] || t;
+  return ({ text: '文本', barcode: '一维码', qrcode: '二维码', image: '图片', rect: '矩形', ellipse: '椭圆', triangle: '三角形', line: '线条', table: '表格', blackout: '区域反黑' })[t] || t;
 }
 
 function typeIcon(t) {
@@ -229,6 +230,7 @@ function drawElement(c, el, scale, opt) {
     case 'qrcode':  drawQR(c, el, opt); break;
     case 'image':   drawImageEl(c, el); break;
     case 'rect':    drawRect(c, el); break;
+    case 'blackout':drawBlackout(c, el); break;
     case 'ellipse': drawEllipse(c, el); break;
     case 'triangle':drawTriangle(c, el); break;
     case 'line':    drawLine(c, el); break;
@@ -355,6 +357,97 @@ function doSplitCells() {
   toast('已拆分所选单元格');
 }
 
+// ---- Table context menu -------------------------------------------------
+let ctxTable = null, ctxCell = null;
+function hideTableCtx() { const m = $('#tableCtxMenu'); if (m) m.hidden = true; }
+function showTableCtx(ev, table, cell) {
+  const m = $('#tableCtxMenu'); if (!m) return;
+  ctxTable = table; ctxCell = cell;
+  m.hidden = false;
+  const pad = 8;
+  const x = Math.min(ev.clientX, window.innerWidth - m.offsetWidth - pad);
+  const y = Math.min(ev.clientY, window.innerHeight - m.offsetHeight - pad);
+  m.style.left = Math.max(pad, x) + 'px';
+  m.style.top = Math.max(pad, y) + 'px';
+}
+function tableShiftCellText(el, axis, from, delta) {
+  if (!el.cells) return;
+  const next = {};
+  for (const k of Object.keys(el.cells)) {
+    let [r, c] = k.split(',').map(Number);
+    if (axis === 'row' && r >= from) r += delta;
+    if (axis === 'col' && c >= from) c += delta;
+    next[r + ',' + c] = el.cells[k];
+  }
+  el.cells = next;
+}
+function tableCtxAction(act) {
+  const el = ctxTable, cell = ctxCell;
+  hideTableCtx();
+  if (!el || el.locked) { toast('表格已锁定'); return; }
+  const r = cell ? cell.r : 0, c = cell ? cell.c : 0;
+  if (act === 'insertRowAbove' || act === 'insertRowBelow') {
+    const at = act === 'insertRowAbove' ? r : r + 1;
+    el.rows = (el.rows || 1) + 1;
+    const rr = tableRatios(el, 'row'); rr.splice(at, 0, rr[Math.max(0, at - 1)] || 1); el.rowRatios = rr;
+    tableShiftCellText(el, 'row', at, 1);
+  } else if (act === 'insertColLeft' || act === 'insertColRight') {
+    const at = act === 'insertColLeft' ? c : c + 1;
+    el.cols = (el.cols || 1) + 1;
+    const cr = tableRatios(el, 'col'); cr.splice(at, 0, cr[Math.max(0, at - 1)] || 1); el.colRatios = cr;
+    tableShiftCellText(el, 'col', at, 1);
+  } else if (act === 'deleteRow') {
+    if ((el.rows || 1) <= 1) { toast('至少保留一行'); return; }
+    el.rows = el.rows - 1;
+    const rr = tableRatios(el, 'row'); rr.splice(r, 1); el.rowRatios = rr;
+    if (!el.cells) el.cells = {};
+    for (const k of Object.keys(el.cells)) { let [cr, cc] = k.split(',').map(Number); if (cr === r) delete el.cells[k]; else if (cr > r) { el.cells[(cr-1)+','+cc] = el.cells[k]; delete el.cells[k]; } }
+    el.merges = tableMerges(el).filter(m => !(m.r <= r && r < m.r + m.rs)).map(m => m.r > r ? Object.assign({}, m, { r: m.r - 1 }) : m);
+  } else if (act === 'deleteCol') {
+    if ((el.cols || 1) <= 1) { toast('至少保留一列'); return; }
+    el.cols = el.cols - 1;
+    const cr = tableRatios(el, 'col'); cr.splice(c, 1); el.colRatios = cr;
+    if (!el.cells) el.cells = {};
+    for (const k of Object.keys(el.cells)) { let [cr, cc] = k.split(',').map(Number); if (cc === c) delete el.cells[k]; else if (cc > c) { el.cells[cr+','+(cc-1)] = el.cells[k]; delete el.cells[k]; } }
+    el.merges = tableMerges(el).filter(m => !(m.c <= c && c < m.c + m.cs)).map(m => m.c > c ? Object.assign({}, m, { c: m.c - 1 }) : m);
+  } else if (act === 'merge') {
+    cellSel = { id: el.id, r0: r, c0: c, r1: r, c1: c };
+    const mg = mergeAt(el, r, c);
+    if (mg) { cellSel = { id: el.id, r0: mg.r, c0: mg.c, r1: mg.r + mg.rs - 1, c1: mg.c + mg.cs - 1 }; }
+    doMergeCells();
+  } else if (act === 'split') {
+    const mg = mergeAt(el, r, c);
+    if (mg) { cellSel = { id: el.id, r0: mg.r, c0: mg.c, r1: mg.r + mg.rs - 1, c1: mg.c + mg.cs - 1 }; doSplitCells(); }
+    else toast('该单元格未合并');
+  } else if (act === 'clearCell') {
+    if (el.cells) { delete el.cells[r + ',' + c]; commit(); refreshAll(); }
+  } else if (act === 'lockTable') {
+    el.locked = !el.locked; commit(); refreshSelectionUI(); toast(el.locked ? '表格已锁定' : '表格已解锁');
+  }
+  renderCanvas();
+}
+function bindTableCtxMenu() {
+  const m = $('#tableCtxMenu'); if (!m) return;
+  m.querySelectorAll('button[data-act]').forEach(b => {
+    b.onclick = (e) => { e.stopPropagation(); tableCtxAction(b.dataset.act); };
+  });
+  document.addEventListener('click', () => hideTableCtx());
+  canvas.addEventListener('contextmenu', (ev) => {
+    ev.preventDefault();
+    const p = eventToMm(ev);
+    for (let i = doc.elements.length - 1; i >= 0; i--) {
+      const el = doc.elements[i];
+      if (el.hidden || el.type !== 'table') continue;
+      const cx = el.x + el.w / 2, cy = el.y + el.h / 2;
+      const a = -(el.rotation || 0) * Math.PI / 180;
+      const ddx = p.x - cx, ddy = p.y - cy;
+      const lp = { x: cx + ddx * Math.cos(a) - ddy * Math.sin(a), y: cy + ddx * Math.sin(a) + ddy * Math.cos(a) };
+      const cell = pointToCell(el, lp);
+      if (cell) { showTableCtx(ev, el, cell); return; }
+    }
+  });
+}
+
 // Table grid lines. Internal segments covered by a merged cell are omitted so
 // a merged region renders as one big cell.
 function drawTable(c, el, opt) {
@@ -376,6 +469,31 @@ function drawTable(c, el, opt) {
     }
   }
   c.stroke();
+  // Cell text content (stored as { "r,c": "text" }).
+  const cells = el.cells || {};
+  if (Object.keys(cells).length) {
+    const fs = el.cellFontSize || 3;
+    c.save();
+    c.font = `400 ${fs}px "${el.cellFontFamily || 'Microsoft YaHei'}, sans-serif"`;
+    c.textBaseline = 'middle'; c.textAlign = 'center';
+    c.fillStyle = el.cellColor || '#111111';
+    const merges = tableMerges(el);
+    for (let r = 0; r < rows; r++) {
+      for (let col = 0; col < cols; col++) {
+        const txt = cells[r + ',' + col];
+        if (!txt) continue;
+        // Skip cells swallowed by a merge (only the top-left renders).
+        let swallowed = false;
+        for (const mg of merges) {
+          if (r >= mg.r && r < mg.r + mg.rs && col >= mg.c && col < mg.c + mg.cs && !(r === mg.r && col === mg.c)) { swallowed = true; break; }
+        }
+        if (swallowed) continue;
+        const cx = (xs[col] + xs[col + 1]) / 2, cy = (ys[r] + ys[r + 1]) / 2;
+        c.fillText(String(txt), cx, cy, xs[col + 1] - xs[col] - 1);
+      }
+    }
+    c.restore();
+  }
 }
 
 function fontPx(el) { return (el.fontSize || 5) * 1.0; } // in mm-units of ctx
@@ -467,16 +585,21 @@ function drawBarcode(c, el, scale, opt) {
   const pxH = Math.max(20, Math.round(el.h * hiDpi / MM));
   const bc = document.createElement('canvas');
   bc.width = pxW; bc.height = pxH;
+  // textPosition supersedes displayValue: 'none' hides the human-readable text.
+  const pos = el.textPosition || (el.displayValue ? 'bottom' : 'none');
+  const showText = pos !== 'none';
+  const modW = Math.max(1, parseFloat(el.moduleWidth) || 2);
   try {
     JsBarcode(bc, value, {
       format: el.format || 'CODE128',
       lineColor: el.lineColor || '#111111',
       background: '#ffffff',
-      displayValue: !!el.displayValue,
+      displayValue: showText,
       font: 'Microsoft YaHei',
       fontSize: Math.max(10, Math.round(pxH * 0.16)),
-      width: 2, margin: 0,
-      height: pxH - Math.round(pxH * 0.22)
+      textMargin: Math.max(0, (parseFloat(el.textGap) || 0) * hiDpi / MM),
+      width: modW, margin: 0,
+      height: pxH - (showText ? Math.round(pxH * 0.22) : 0)
     });
     c.drawImage(bc, el.x, el.y, el.w, el.h);
   } catch (e) {
@@ -554,6 +677,12 @@ function roundRectPath(c, x, y, w, h, r) {
   c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
   c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
   c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
+}
+function drawBlackout(c, el) {
+  const r = Math.max(0, Math.min(el.radius || 0, Math.min(el.w, el.h) / 2));
+  c.fillStyle = el.fill || '#000000';
+  if (r > 0) { roundRectPath(c, el.x, el.y, el.w, el.h, r); c.fill(); }
+  else c.fillRect(el.x, el.y, el.w, el.h);
 }
 function drawRect(c, el) {
   c.fillStyle = el.fill || '#fff';
@@ -889,6 +1018,46 @@ function beginInlineEdit(el) {
   inlineEditor = ta;
   ta.focus(); ta.select();
 }
+// Edit a single table cell's text with a floating input anchored to the cell.
+function editTableCell(table, r, c) {
+  closeInlineEdit(false);
+  const wrap = $('#canvasWrap'); if (!wrap) return;
+  const s = scaleFactor();
+  const { xs, ys } = tableEdges(table);
+  const x0 = xs[c], x1 = xs[c + 1], y0 = ys[r], y1 = ys[r + 1];
+  const ta = document.createElement('input');
+  ta.type = 'text'; ta.className = 'inline-edit';
+  const key = r + ',' + c;
+  ta.value = (table.cells && table.cells[key]) || '';
+  ta.style.left = ((x0 + EDITOR_PAD_MM) * s) + 'px';
+  ta.style.top = ((y0 + EDITOR_PAD_MM) * s) + 'px';
+  ta.style.width = Math.max(30, (x1 - x0) * s) + 'px';
+  ta.style.height = Math.max(20, (y1 - y0) * s) + 'px';
+  ta.style.fontSize = Math.max(11, (table.cellFontSize || 3) * s) + 'px';
+  ta.style.textAlign = 'center';
+  let done = false;
+  const finish = (save) => {
+    if (done) return; done = true;
+    if (save) {
+      if (!table.cells) table.cells = {};
+      const v = ta.value.trim();
+      if (v) table.cells[key] = v; else delete table.cells[key];
+      commit();
+    }
+    if (ta.parentNode) ta.remove();
+    renderCanvas();
+  };
+  ta._finish = finish;
+  ta.addEventListener('blur', () => finish(true));
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+  wrap.appendChild(ta);
+  inlineEditor = ta;
+  ta.focus(); ta.select();
+}
+
 function closeInlineEdit(save) {
   if (!inlineEditor) return;
   const ta = inlineEditor; inlineEditor = null;
@@ -899,6 +1068,22 @@ function closeInlineEdit(save) {
 }
 canvas.addEventListener('dblclick', (ev) => {
   const p = eventToMm(ev);
+  // Table cell: edit its text content inline.
+  for (let i = doc.elements.length - 1; i >= 0; i--) {
+    const t = doc.elements[i];
+    if (t.hidden || t.type !== 'table') continue;
+    const cx = t.x + t.w / 2, cy = t.y + t.h / 2;
+    const a = -(t.rotation || 0) * Math.PI / 180;
+    const ddx = p.x - cx, ddy = p.y - cy;
+    const lp = { x: cx + ddx * Math.cos(a) - ddy * Math.sin(a), y: cy + ddx * Math.sin(a) + ddy * Math.cos(a) };
+    const cell = pointToCell(t, lp);
+    if (!cell) continue;
+    ev.preventDefault();
+    selectOnly(t.id);
+    editTableCell(t, cell.r, cell.c);
+    refreshSelectionUI();
+    return;
+  }
   for (let i = doc.elements.length - 1; i >= 0; i--) {
     const e = doc.elements[i];
     if (!e.hidden && pointInElement(e, p) && editableKey(e)) {
@@ -1436,14 +1621,20 @@ function refreshProps() {
       ['CODE128', 'CODE_128'], ['CODE39', 'CODE_39'], ['EAN13', 'EAN_13'],
       ['EAN8', 'EAN_8'], ['UPC', 'UPC'], ['ITF14', 'ITF-14'], ['CODABAR', 'CODABAR']
     ]);
-    addCheck('显示文字', 'displayValue');
+    addSelect('文本位置', 'textPosition', [['bottom', '文本下方'], ['top', '文本上方'], ['none', '不显示']]);
     addColorRow('线条颜色', 'lineColor', el, p, commit, renderCanvas);
+    sec('条码参数');
+    addText('条宽密度 (mil)', 'moduleWidth', el.moduleWidth || 2, 'number');
+    addText('文本间距 (mm)', 'textGap', el.textGap || 0, 'number');
     sec('条码内容');
     addText('内容 (支持 {字段})', 'value', el.value);
   } else if (el.type === 'qrcode') {
     sec('二维码');
     addText('内容 (支持 {字段})', 'value', el.value);
     addSelect('容错级别', 'ec', [['L', 'L 低'], ['M', 'M 中'], ['Q', 'Q 较高'], ['H', 'H 高']]);
+    addSelect('符号版本', 'symbolVersion', [['auto', '自动'], ...Array.from({length: 10}, (_, i) => [String(i + 1), '版本 ' + (i + 1)])]);
+    addSelect('字符编码', 'charset', [['ANSI', 'ANSI'], ['UTF-8', 'UTF-8'], ['GB2312', 'GB2312']]);
+    addSelect('文本位置', 'textPosition', [['none', '无'], ['top', '上方'], ['bottom', '下方']]);
   } else if (el.type === 'image') {
     sec('图片');
     const row = div('prop-row');
@@ -1463,6 +1654,10 @@ function refreshProps() {
     addColorRow('线条', 'stroke', el, p, commit, renderCanvas);
     addText('线宽 (mm)', 'strokeWidth', el.strokeWidth, 'number');
     if (el.type === 'rect') addText('圆角半径 (mm)', 'radius', el.radius || 0, 'number');
+  } else if (el.type === 'blackout') {
+    sec('区域反黑');
+    addColorRow('填充', 'fill', el, p, commit, renderCanvas);
+    addText('圆角半径 (mm)', 'radius', el.radius || 0, 'number');
   } else if (el.type === 'table') {
     sec('表格 · 行列');
     const rg = div('prop-grid');
@@ -1485,6 +1680,13 @@ function refreshProps() {
     };
     mkNum('行数', 'rows', false); mkNum('列数', 'cols', false);
     p.appendChild(rg);
+    sec('单元格文字');
+    addText('字号 (mm)', 'cellFontSize', el.cellFontSize || 3, 'number');
+    addSelect('字体', 'cellFontFamily', [['Microsoft YaHei', '微软雅黑'], ['SimHei', '黑体'], ['SimSun', '宋体'], ['Arial', 'Arial']]);
+    addColorRow('颜色', 'cellColor', el, p, commit, renderCanvas);
+    const cellTip = div('side-tip');
+    cellTip.textContent = '双击单元格输入内容；右键可插入/删除行列、合并拆分';
+    p.appendChild(cellTip);
     sec('线条');
     addText('线条粗细 (mm)', 'borderWidth', el.borderWidth, 'number');
     addColorRow('线条颜色', 'borderColor', el, p, commit, renderCanvas);
@@ -2048,7 +2250,7 @@ function serializeToDDL(targetDoc) {
     } else if (e.type === 'image') {
       const b64 = (e.src || '').startsWith('data:') ? (e.src.split(',')[1] || '') : '';
       L.push(`   <drawobj${base}${attr('itemtype', '6')}${attr('image', (e.src || '').startsWith('data:') ? '' : (e.src || ''))}${attr('base64', b64)}${attr('embeddocument', b64 ? 'true' : 'false')}${attr('fill', false)}${attr('imgpath', '')}${attr('imgurl', '')}></drawobj>`);
-    } else if (e.type === 'rect' || e.type === 'ellipse' || e.type === 'triangle') {
+    } else if (e.type === 'rect' || e.type === 'ellipse' || e.type === 'triangle' || e.type === 'blackout') {
       // Shapes: itemtype 2, radius>0 = ellipse. Triangle has no native
       // type here — save as a plain rect (shown as a rectangle).
       L.push(`   <drawobj${base}${attr('itemtype', '2')}${attr('radius', e.type === 'ellipse' ? '1' : '0')}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}${attr('pattern', '0')}></drawobj>`);
@@ -2879,8 +3081,79 @@ function bindUpdateToast() {
   if (closeBtn) closeBtn.onclick = () => { box.hidden = true; };
 }
 
+/* ---------------- new label dialog ---------------- */
+function updateNewLabelPreview() {
+  const w = parseFloat($('#nlW') && $('#nlW').value) || 100;
+  const h = parseFloat($('#nlH') && $('#nlH').value) || 70;
+  const shape = ($('#nlShape') && $('#nlShape').value) || 'rect';
+  const maxW = 190, maxH = 120;
+  const ratio = Math.min(maxW / w, maxH / h);
+  const pw = Math.max(8, w * ratio), ph = Math.max(8, h * ratio);
+  const x = 150 - pw / 2, y = 120 - ph / 2;
+  const r = $('#nlPrevShape');
+  if (r) {
+    r.setAttribute('x', x); r.setAttribute('y', y);
+    r.setAttribute('width', pw); r.setAttribute('height', ph);
+    if (shape === 'ellipse') r.setAttribute('rx', pw / 2);
+    else if (shape === 'round') r.setAttribute('rx', Math.min(10, pw / 5));
+    else r.setAttribute('rx', 0);
+  }
+  const wl = $('#nlPrevWLine');
+  if (wl) { wl.setAttribute('x1', x); wl.setAttribute('x2', x + pw); wl.setAttribute('y1', y - 14); wl.setAttribute('y2', y - 14); }
+  const wt = $('#nlPrevWText');
+  if (wt) { wt.setAttribute('x', 150); wt.setAttribute('y', y - 20); wt.textContent = w + 'mm'; }
+  const hl = $('#nlPrevHLine');
+  if (hl) { hl.setAttribute('y1', y); hl.setAttribute('y2', y + ph); hl.setAttribute('x1', x - 14); hl.setAttribute('x2', x - 14); }
+  const ht = $('#nlPrevHText');
+  if (ht) { ht.setAttribute('transform', `rotate(-90 ${x - 22} 120)`); ht.setAttribute('x', x - 22); ht.setAttribute('y', 120); ht.textContent = h + 'mm'; }
+}
+function openNewLabelDialog() {
+  const m = $('#newLabelModal'); if (!m) return;
+  $('#nlName').value = '';
+  $('#nlW').value = 100; $('#nlH').value = 70;
+  $('#nlCols').value = 1; $('#nlColGap').value = 2;
+  $('#nlOffsetX').value = 0; $('#nlOffsetY').value = 0;
+  $('#nlShape').value = 'rect'; $('#nlLabelGap').value = 2;
+  $('#nlMore').open = false;
+  updateNewLabelPreview();
+  m.hidden = false;
+  setTimeout(() => $('#nlName').focus(), 50);
+}
+function closeNewLabelDialog() { const m = $('#newLabelModal'); if (m) m.hidden = true; }
+function applyNewLabel() {
+  const w = parseFloat($('#nlW').value), h = parseFloat($('#nlH').value);
+  if (!isFinite(w) || w < 10 || w > 500 || !isFinite(h) || h < 10 || h > 500) { toast('宽高需在 10-500 mm 之间'); return; }
+  const docObj = makeDoc();
+  docObj.name = ($('#nlName').value || '').trim() || '未命名标签';
+  docObj.width = w; docObj.height = h;
+  docObj.cols = Math.max(1, parseInt($('#nlCols').value, 10) || 1);
+  docObj.colGap = Math.max(0, parseFloat($('#nlColGap').value) || 0);
+  docObj.offsetX = parseFloat($('#nlOffsetX').value) || 0;
+  docObj.offsetY = parseFloat($('#nlOffsetY').value) || 0;
+  docObj.labelShape = $('#nlShape').value || 'rect';
+  docObj.labelGap = Math.max(0, parseFloat($('#nlLabelGap').value) || 0);
+  captureActive();
+  const t = makeTab(docObj);
+  tabs.push(t); activateTab(t); updateEmptyState();
+  commit();
+  closeNewLabelDialog();
+  toast('已新建标签：' + docObj.name);
+}
+function bindNewLabelDialog() {
+  if (!$('#newLabelModal')) return;
+  if ($('#nlClose')) $('#nlClose').onclick = closeNewLabelDialog;
+  if ($('#nlOk')) $('#nlOk').onclick = applyNewLabel;
+  ['nlW','nlH','nlShape'].forEach(id => { const el = $('#' + id); if (el) el.addEventListener('input', updateNewLabelPreview); });
+  $('#newLabelModal').addEventListener('click', (e) => { if (e.target.id === 'newLabelModal') closeNewLabelDialog(); });
+  if ($('#btnNew')) $('#btnNew').onclick = openNewLabelDialog;
+  if ($('#weNew')) $('#weNew').onclick = openNewLabelDialog;
+  if ($('#btnLabelSetup')) $('#btnLabelSetup').onclick = openNewLabelDialog;
+}
+
 function init() {
   bindUpdateToast();
+  bindNewLabelDialog();
+  bindTableCtxMenu();
   // Defer the network check so it never delays first paint.
   setTimeout(checkForUpdate, 1200);
   // Start with NO document tab (no stray "未命名标签"). A blank working doc
