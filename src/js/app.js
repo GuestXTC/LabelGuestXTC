@@ -401,7 +401,11 @@ function drawText(c, el, opt) {
   let text = resolvedValue(el.text, opt.record, opt.batchEnabled, el);
   if (el.dynamic === 'date' || el.dynamic === 'time') text = computeDynamicDate(el);
   const size = fontPx(el);
-  c.font = `${el.italic ? 'italic ' : ''}${el.bold ? '700 ' : '400 '}${size}px "${el.fontFamily || 'Microsoft YaHei'}, sans-serif"`;
+  // Quote ONLY the family name; sans-serif must be a separate fallback token.
+  // Wrapping "微软雅黑, sans-serif" in one pair of quotes makes an invalid
+  // font shorthand that Chromium silently refuses to draw.
+  const fam = String(el.fontFamily || 'Microsoft YaHei').split(',')[0].trim().replace(/^["']|["']$/g, '');
+  c.font = `${el.italic ? 'italic ' : ''}${el.bold ? '700 ' : '400 '}${size}px "${fam}", sans-serif`;
   c.textBaseline = 'middle';
   // We always draw with textAlign='left' and position glyphs by hand. Using
   // canvas textAlign together with fillText's maxWidth makes Chromium compress
@@ -847,7 +851,8 @@ function beginInlineEdit(el) {
   const al = ['center','right','justify','distribute'].indexOf(el.align) >= 0 ? el.align : 'left';
   if ((al === 'justify' || al === 'distribute') && el[key]) {
     const probe = document.createElement('canvas').getContext('2d');
-    probe.font = `${el.bold ? '700 ' : '400 '}${fontPx(el)}px "${el.fontFamily || 'Microsoft YaHei'}, sans-serif"`;
+    const pfam = String(el.fontFamily || 'Microsoft YaHei').split(',')[0].trim().replace(/^["']|["']$/g, '');
+    probe.font = `${el.bold ? '700 ' : '400 '}${fontPx(el)}px "${pfam}", sans-serif`;
     const chars = Array.from(String(el[key]));
     const glyphW = chars.reduce((a, ch) => a + probe.measureText(ch).width, 0);
     if (chars.length > 1 && glyphW < el.w) lsPx = (el.w - glyphW) / (chars.length - 1) * s;
@@ -2106,6 +2111,20 @@ function attrMap(node) {
   return m;
 }
 
+// Map DLabel's Chinese font names to English family names that Chromium
+// reliably renders in a scaled canvas. Bare CJK family names can leave
+// fillText blank even though the call succeeds.
+function normalizeFontFamily(name) {
+  const map = {
+    '微软雅黑': 'Microsoft YaHei', '雅黑': 'Microsoft YaHei',
+    '黑体': 'SimHei', '宋体': 'SimSun', '仿宋': 'FangSong',
+    '楷体': 'KaiTi', '隶书': 'LiSu', '幼圆': 'YouYuan',
+    '华文细黑': 'STXihei', '华文楷体': 'STKaiti', '华文宋体': 'STSong'
+  };
+  const fam = String(name || 'Microsoft YaHei').split(',')[0].trim().replace(/^["']|["']$/g, '');
+  return map[fam] || fam || 'Microsoft YaHei';
+}
+
 function parseDDL(xmlText) {
   const raw = cleanXmlText(xmlText);
   if (!raw) throw new Error('文件内容为空');
@@ -2173,7 +2192,10 @@ function parseDDL(xmlText) {
       const alignMap = { '0': 'left', '1': 'center', '4': 'center', '2': 'right', '3': 'justify' };
       out.elements.push(Object.assign(common, {
         type: 'text', name: (vals[0] || '文本').slice(0, 12),
-        text: vals.join(''), fontFamily: m.fontfamily || 'Microsoft YaHei',
+        // Normalize Chinese font aliases to their English family names:
+        // Chromium can silently skip fillText with a bare CJK family name in
+        // a scaled canvas context. "微软雅黑" -> "Microsoft YaHei", etc.
+        text: vals.join(''), fontFamily: normalizeFontFamily(m.fontfamily),
         fontSize: round(Math.max(2, num(m.fontsize, 10) * 0.35)),
         bold: m.fontbold === 'true', italic: m.fontitalic === 'true',
         underline: m.fontunderline === 'true', strike: m.fontstrikeout === 'true',
@@ -2202,9 +2224,13 @@ function parseDDL(xmlText) {
       }));
     } else if (it === '2') {
       const isEllipse = num(m.radius, 0) > 0;
+      // DLabel colorflag=0 means no fill (outline only). A filled shape with
+      // a high zvalue would cover text underneath it, which is the reason
+      // some imported labels appeared to have all their text missing.
+      const hasFill = m.colorflag == null ? true : num(m.colorflag, 0) > 0;
       out.elements.push(Object.assign(common, {
         type: isEllipse ? 'ellipse' : 'rect', name: isEllipse ? '椭圆' : '矩形',
-        fill: '#ffffff', stroke: '#111111', strokeWidth: lineW, radius: 0
+        fill: hasFill ? '#ffffff' : 'transparent', stroke: '#111111', strokeWidth: lineW, radius: 0
       }));
     } else if (it === '6') {
       const b64 = m.base64 || '';
