@@ -768,11 +768,16 @@ canvas.addEventListener('mousedown', (ev) => {
     drag = { mode: hh.k, start: p, orig: JSON.parse(JSON.stringify(sel)), index: hh.index, targets };
     return;
   }
-  // topmost hit (skip hidden)
+  // topmost hit (skip hidden). Transparent, border-only shapes must not
+  // swallow clicks: they have no interior so hit-testing the interior should
+  // fall through to whatever is underneath (e.g. text covered by a frame).
   let hit = null;
   for (let i = doc.elements.length - 1; i >= 0; i--) {
     const e = doc.elements[i];
-    if (!e.hidden && pointInElement(e, p)) { hit = e; break; }
+    if (e.hidden) continue;
+    if ((e.type === 'rect' || e.type === 'ellipse' || e.type === 'triangle') &&
+        (e.fill === 'transparent' || e.fill === 'none' || !e.fill)) continue;
+    if (pointInElement(e, p)) { hit = e; break; }
   }
   // Clicking INSIDE an already-selected table starts a cell selection drag;
   // first click just selects the table (so it can still be moved normally).
