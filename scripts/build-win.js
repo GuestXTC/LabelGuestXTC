@@ -23,7 +23,7 @@ function run(cmd, args) {
 }
 
 // 1) Build unpacked directory.
-run(npx, ['electron-builder', '--win', '--x64', '--dir']);
+run(npx, ['electron-builder', '--win', '--x64', '--dir', '--publish', 'never']);
 
 // 2) Stamp the icon into the exe using rcedit.
 // Prefer the npm dependency (present on both CI and local after npm install);
@@ -44,5 +44,5 @@ console.log('+ rcedit ' + EXE + ' --set-icon ' + ICO);
 execFileSync(rcedit, [EXE, '--set-icon', ICO], { stdio: 'inherit' });
 
 // 3) Build NSIS installer from the stamped directory.
-run(npx, ['electron-builder', '--win', '--x64', '--prepackaged', UNPACKED]);
+run(npx, ['electron-builder', '--win', '--x64', '--prepackaged', UNPACKED, '--publish', 'never']);
 console.log('Windows build with custom icon complete.');
