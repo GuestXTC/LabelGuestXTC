@@ -166,8 +166,13 @@ function render(ctx2, targetDoc, scale, opts = {}) {
     for (let y = 0; y <= targetDoc.height; y += gridSize) { ctx2.moveTo(0, y); ctx2.lineTo(targetDoc.width, y); }
     ctx2.stroke();
   }
+  // Blackout regions are backgrounds: draw them first regardless of array
+  // order, so text placed over them is never covered by a late black block.
+  const blackouts = targetDoc.elements.filter(e => e.type === 'blackout' && !e.hidden);
+  for (const b of blackouts) drawElement(ctx2, b, scale, { forExport, record, batchEnabled });
+
   for (const el of targetDoc.elements) {
-    if (el.hidden) continue; // hidden elements are not drawn or exported
+    if (el.hidden || el.type === 'blackout') continue; // blackouts drawn above
     if (!forExport && elementOverflows(el, targetDoc)) {
       // Overflowing elements: draw inside page normally, and the overflowing
       // part semi-transparent so it is clearly "outside the printable area".
@@ -603,11 +608,20 @@ function computeDynamicDate(el) {
   return String(fmt).replace(/YYYY|YY|MM|DD|HH|mm|SS/g, k => map[k] || k);
 }
 
+// True when a text element's center lies inside any blackout background —
+// such text must be drawn white so it stays legible on the black region.
+function textOnBlackout(el) {
+  const cx = el.x + el.w / 2, cy = el.y + el.h / 2;
+  return (doc.elements || []).some(b => b.type === 'blackout' && !b.hidden &&
+    cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h);
+}
+
 function drawText(c, el, opt) {
   let text = resolvedValue(el.text, opt.record, opt.batchEnabled, el);
   if (el.dynamic === 'date' || el.dynamic === 'time') text = computeDynamicDate(el);
   else if (el.contentType === 'serial' && opt.record) text = opt.record.__serial != null ? String(opt.record.__serial) : (el.text || '');
   else if ((el.contentType === 'date' || el.contentType === 'time') && !el.dynamic) text = computeDynamicDate(el);
+  const autoInverse = !el.inverse && textOnBlackout(el);
   const size = fontPx(el);
   // Quote ONLY the family name; sans-serif must be a separate fallback token.
   // Wrapping "微软雅黑, sans-serif" in one pair of quotes makes an invalid
@@ -648,11 +662,11 @@ function drawText(c, el, opt) {
     const anchor = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w : el.x;
     const left = align === 'center' ? anchor - drawnW / 2 : align === 'right' ? anchor - drawnW : anchor;
 
-    if (el.inverse) {
+    if (el.inverse && !autoInverse) {
       c.fillStyle = color;
       c.fillRect(left, y - size * 0.6, drawnW, size * 1.2);
     }
-    c.fillStyle = el.inverse ? '#ffffff' : color;
+    c.fillStyle = (el.inverse || autoInverse) ? '#ffffff' : color;
 
     if (chars.length > 1 && (gap > 0 || ls > 0)) {
       let cx = left;
