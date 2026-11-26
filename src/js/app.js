@@ -51,9 +51,9 @@ function defaultElement(type) {
     case 'barcode': return Object.assign(base, { w: 60, h: 20, value: '123456789012', format: 'CODE128', displayValue: true, lineColor: '#111111', textPosition: 'bottom', moduleWidth: 2, textGap: 0 });
     case 'qrcode':  return Object.assign(base, { w: 25, h: 25, value: 'https://example.com', ec: 'M', symbolVersion: 'auto', charset: 'ANSI', textPosition: 'none' });
     case 'image':   return Object.assign(base, { w: 30, h: 30, src: '', grayscale: false, opacity: 1 });
-    case 'rect':    return Object.assign(base, { w: 40, h: 24, fill: '#ffffff', stroke: '#111111', strokeWidth: 0.4, radius: 0 });
-    case 'ellipse': return Object.assign(base, { w: 30, h: 30, fill: '#ffffff', stroke: '#111111', strokeWidth: 0.4 });
-    case 'triangle':return Object.assign(base, { w: 30, h: 26, fill: '#ffffff', stroke: '#111111', strokeWidth: 0.4 });
+    case 'rect':    return Object.assign(base, { w: 40, h: 24, fill: 'transparent', stroke: '#111111', strokeWidth: 0.4, radius: 0 });
+    case 'ellipse': return Object.assign(base, { w: 30, h: 30, fill: 'transparent', stroke: '#111111', strokeWidth: 0.4 });
+    case 'triangle':return Object.assign(base, { w: 30, h: 26, fill: 'transparent', stroke: '#111111', strokeWidth: 0.4 });
     case 'line':    return Object.assign(base, { w: 40, h: 0, stroke: '#111111', strokeWidth: 0.4 });
     case 'blackout':return Object.assign(base, { w: 30, h: 20, fill: '#000000', radius: 0 });
     case 'excel':   return Object.assign(base, { w: 60, h: 30, rows: 2, cols: 2, colRatios: [1,1], rowRatios: [1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111', dataSource: '' });
@@ -948,6 +948,27 @@ function pointInElement(el, p) {
   const pad = 0.6;
   return lx >= el.x - pad && lx <= el.x + el.w + pad && ly >= el.y - pad && ly <= el.y + el.h + pad;
 }
+// Transparent shapes have no interior to grab: only hit near their outline so
+// clicks inside pass through to text underneath, while the shape is still
+// selectable by its border.
+function pointNearShapeBorder(el, p) {
+  const cx = el.x + el.w / 2, cy = el.y + el.h / 2;
+  const a = -(el.rotation || 0) * Math.PI / 180;
+  const dx = p.x - cx, dy = p.y - cy;
+  const lx = cx + dx * Math.cos(a) - dy * Math.sin(a);
+  const ly = cy + dx * Math.sin(a) + dy * Math.cos(a);
+  const tol = Math.max(1.2, (el.strokeWidth || 0.4) + 1);
+  if (el.type === 'ellipse') {
+    const rx = Math.abs(el.w) / 2, ry = Math.abs(el.h) / 2;
+    if (rx < 0.01 || ry < 0.01) return false;
+    const d = Math.hypot((lx - cx) / rx, (ly - cy) / ry);
+    return Math.abs(d - 1) * Math.min(rx, ry) <= tol;
+  }
+  // rect / triangle: near any of the 4 bounding edges
+  const nearV = (Math.abs(lx - el.x) <= tol || Math.abs(lx - (el.x + el.w)) <= tol) && ly >= el.y - tol && ly <= el.y + el.h + tol;
+  const nearH = (Math.abs(ly - el.y) <= tol || Math.abs(ly - (el.y + el.h)) <= tol) && lx >= el.x - tol && lx <= el.x + el.w + tol;
+  return nearV || nearH;
+}
 
 /* ---------------- interactions ---------------- */
 let drag = null;
@@ -1008,8 +1029,12 @@ canvas.addEventListener('mousedown', (ev) => {
   for (let i = doc.elements.length - 1; i >= 0; i--) {
     const e = doc.elements[i];
     if (e.hidden) continue;
-    if ((e.type === 'rect' || e.type === 'ellipse' || e.type === 'triangle') &&
-        (e.fill === 'transparent' || e.fill === 'none' || !e.fill)) continue;
+    const isShape = e.type === 'rect' || e.type === 'ellipse' || e.type === 'triangle';
+    const noFill = e.fill === 'transparent' || e.fill === 'none' || !e.fill;
+    if (isShape && noFill) {
+      if (pointNearShapeBorder(e, p)) { hit = e; break; }
+      continue; // inside passes through to text below
+    }
     if (pointInElement(e, p)) { hit = e; break; }
   }
   // Clicking INSIDE an already-selected table starts a cell selection drag;
