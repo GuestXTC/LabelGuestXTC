@@ -25,16 +25,20 @@ function run(cmd, args) {
 // 1) Build unpacked directory.
 run(npx, ['electron-builder', '--win', '--x64', '--dir']);
 
-// 2) Stamp the icon into the exe using rcedit from electron-builder's cache.
-let rcedit = null;
-const cacheRoot = path.join(process.env.LOCALAPPDATA || '', 'electron-builder', 'Cache', 'winCodeSign');
-if (fs.existsSync(cacheRoot)) {
-  for (const d of fs.readdirSync(cacheRoot)) {
-    const p = path.join(cacheRoot, d, 'rcedit-x64.exe');
-    if (fs.existsSync(p)) { rcedit = p; break; }
+// 2) Stamp the icon into the exe using rcedit.
+// Prefer the npm dependency (present on both CI and local after npm install);
+// fall back to electron-builder's cache if available.
+let rcedit = path.join(ROOT, 'node_modules', 'rcedit', 'bin', 'rcedit-x64.exe');
+if (!fs.existsSync(rcedit)) {
+  const cacheRoot = path.join(process.env.LOCALAPPDATA || '', 'electron-builder', 'Cache', 'winCodeSign');
+  if (fs.existsSync(cacheRoot)) {
+    for (const d of fs.readdirSync(cacheRoot)) {
+      const p = path.join(cacheRoot, d, 'rcedit-x64.exe');
+      if (fs.existsSync(p)) { rcedit = p; break; }
+    }
   }
 }
-if (!rcedit) throw new Error('rcedit-x64.exe not found in electron-builder cache');
+if (!fs.existsSync(rcedit)) throw new Error('rcedit-x64.exe not found (npm rcedit dependency missing)');
 if (!fs.existsSync(EXE)) throw new Error('Unpacked exe not found: ' + EXE);
 console.log('+ rcedit ' + EXE + ' --set-icon ' + ICO);
 execFileSync(rcedit, [EXE, '--set-icon', ICO], { stdio: 'inherit' });
