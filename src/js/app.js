@@ -2943,6 +2943,8 @@ let pcZoom = 2;
 let pcCurrentBm = null;      // still built for printing; kept for compatibility
 let pcPreviewPaper = null;   // { widthMm, heightMm }
 let pcPreviewRecord = null;
+let pcPageIndex = 0;         // current preview page (0-based)
+let pcRecords = [];          // cached print records
 function drawPrintPreview(bm, paper, record) {
   const canvas = $('#pcCanvas');
   if (!bm) return;
@@ -2966,6 +2968,11 @@ function drawPrintPreview(bm, paper, record) {
   const corr = printCorrections();
   ctx.save();
   if (corr.rotate === 180) { ctx.translate(wpx, hpx); ctx.rotate(Math.PI); }
+  else if (corr.rotate === 90 || corr.rotate === 270) {
+    // 90°: rotate design around paper center; preview canvas swaps dimensions.
+    const cx = paperW * pxPerMm / 2, cy = paperH * pxPerMm / 2;
+    ctx.translate(cx, cy); ctx.rotate(corr.rotate * Math.PI / 180); ctx.translate(-cy, cx);
+  }
   if (corr.mirror) { ctx.translate(wpx, 0); ctx.scale(-1, 1); }
 
   const rec = pcPreviewRecord;
@@ -3021,15 +3028,26 @@ function printPaper() {
 }
 function refreshPrintPreview() {
   const records = buildRecords();
-  const rec = records && records[0] ? records[0] : null;
+  pcRecords = records || [];
+  const total = (pcRecords.length === 1 && !pcRecords[0]) ? 1 : pcRecords.length;
+  if (pcPageIndex >= total) pcPageIndex = 0;
+  const rec = pcRecords[pcPageIndex] || null;
   const paper = printPaper();
   const bm = renderTo1Bit(rec, paper.widthMm, paper.heightMm, printCorrections());
   drawPrintPreview(bm, paper, rec);
-  const n = (records.length === 1 && !records[0]) ? 1 : records.length;
   const copies = Math.max(1, parseInt($('#printCopies').value) || 1);
-  $('#pcJobInfo').textContent = `${n} 张标签 × ${copies} 份 = ${n * copies} 张`;
-  if ($('#pcPageInfo')) $('#pcPageInfo').textContent = `标签 1 / ${n} · 共 ${n * copies} 张`;
+  $('#pcJobInfo').textContent = `${total} 张标签 × ${copies} 份 = ${total * copies} 张`;
+  if ($('#pcPageInfo')) $('#pcPageInfo').textContent = `标签 ${pcPageIndex + 1} / ${total} · 共 ${total * copies} 张`;
+  // pager
+  if ($('#pcpPageInput')) $('#pcpPageInput').value = pcPageIndex + 1;
+  if ($('#pcpPageTotal')) $('#pcpPageTotal').textContent = '共 ' + total + ' 页';
+  if ($('#pcpFirst')) { $('#pcpFirst').disabled = pcPageIndex <= 0; $('#pcpPrev').disabled = pcPageIndex <= 0; $('#pcpNext').disabled = pcPageIndex >= total - 1; $('#pcpLast').disabled = pcPageIndex >= total - 1; }
   updatePaperHint();
+}
+function gotoPreviewPage(i) {
+  const total = (pcRecords.length === 1 && !pcRecords[0]) ? 1 : pcRecords.length;
+  pcPageIndex = Math.max(0, Math.min(total - 1, i));
+  refreshPrintPreview();
 }
 
 /* ---------------- printer list ---------------- */
@@ -3092,6 +3110,10 @@ function openPrintCenter() {
   $('#printModal').hidden = false;
   if (!printersLoaded) refreshPrinters();
   syncPaperFromPrinter();
+  pcPageIndex = 0;
+  if ($('#pcpMetaName')) $('#pcpMetaName').textContent = doc.name || '未命名标签';
+  if ($('#pcpMetaSize')) $('#pcpMetaSize').textContent = doc.width + ' × ' + doc.height + ' mm';
+  if ($('#pcpMetaCols')) $('#pcpMetaCols').textContent = String(doc.cols || 1);
   refreshPrintPreview();
   updatePaperHint();
   requestAnimationFrame(fitPrintPreview); // auto-fit so preview never overflows
@@ -3117,6 +3139,36 @@ $('#pcZoomFit').onclick = () => {
   const el = $('#' + id);
   if (el) { el.addEventListener('change', refreshPrintPreview); el.addEventListener('input', refreshPrintPreview); }
 });
+// pager controls
+if ($('#pcpFirst')) $('#pcpFirst').onclick = () => gotoPreviewPage(0);
+if ($('#pcpPrev')) $('#pcpPrev').onclick = () => gotoPreviewPage(pcPageIndex - 1);
+if ($('#pcpNext')) $('#pcpNext').onclick = () => gotoPreviewPage(pcPageIndex + 1);
+if ($('#pcpLast')) $('#pcpLast').onclick = () => gotoPreviewPage(pcRecords.length - 1);
+if ($('#pcpPageInput')) $('#pcpPageInput').addEventListener('change', (e) => {
+  const v = parseInt(e.target.value, 10) || 1;
+  gotoPreviewPage(v - 1);
+});
+// direction buttons (0 / 90 / 180) — sync with the hidden rotate selector
+function setPrintDirection(deg) {
+  const rot = $('#printRotate');
+  if (rot) { rot.value = String(deg); }
+  document.querySelectorAll('.pc-dir').forEach(b => b.classList.toggle('active', parseInt(b.dataset.dir, 10) === deg));
+  refreshPrintPreview();
+}
+document.querySelectorAll('.pc-dir').forEach(b => {
+  b.onclick = () => {
+    const deg = parseInt(b.dataset.dir, 10);
+    if (deg === 90) { toast('90° 打印方向：预览已旋转，打印机按 0° 输出'); }
+    setPrintDirection(deg);
+  };
+});
+if ($('#printRotate')) $('#printRotate').addEventListener('change', () => {
+  document.querySelectorAll('.pc-dir').forEach(b => b.classList.toggle('active', parseInt(b.dataset.dir, 10) === (parseInt($('#printRotate').value) || 0)));
+});
+if ($('#btnRebindPrint')) $('#btnRebindPrint').onclick = () => {
+  refreshPrinters();
+  toast('已重新读取打印机列表');
+};
 if ($('#printSyncPaper')) $('#printSyncPaper').addEventListener('change', () => {
   syncPaperFromPrinter(); refreshPrintPreview(); updatePaperHint();
 });

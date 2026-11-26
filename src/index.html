@@ -422,6 +422,17 @@
 
         <div class="pc-status" id="paperHint">按纸张 50×40mm 出图，画布自动缩放为 1 张</div>
 
+        <div class="pc-quick">
+          <label class="pc-row"><span>打印方向</span>
+            <span class="pc-dir-group">
+              <button type="button" class="pc-dir active" data-dir="0" title="0度">0°</button>
+              <button type="button" class="pc-dir" data-dir="90" title="90度">90°</button>
+              <button type="button" class="pc-dir" data-dir="180" title="180度">180°</button>
+            </span>
+          </label>
+          <button type="button" class="pc-rebind" id="btnRebindPrint">重新绑定打印词</button>
+        </div>
+
         <details class="pc-advanced" id="pcAdvanced">
           <summary><span class="adv-label">高级设置</span> <span class="adv-sub">间隙 / 浓度 / 校正</span></summary>
           <div class="pc-adv-body">
@@ -439,7 +450,7 @@
             <div class="pc-divider"></div>
             <label class="pc-row chk-row"><span>黑白反转</span><input type="checkbox" id="printInvert" /></label>
             <label class="pc-row chk-row"><span>左右镜像</span><input type="checkbox" id="printMirror" /></label>
-            <label class="pc-row"><span>旋转</span><select id="printRotate"><option value="0">0°</option><option value="180">180°</option></select></label>
+            <label class="pc-row"><span>旋转</span><select id="printRotate"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option></select></label>
             <p class="pc-tip">多走空白纸：选「自动校准间隙」→ 打印测试页。</p>
           </div>
         </details>
@@ -457,11 +468,24 @@
             <button class="mini-btn fit" id="pcZoomFit" title="适应窗口">适应</button>
           </span>
         </div>
+        <div class="pcp-info-block">
+          <div class="pc-sec-title">标签信息</div>
+          <div class="pcp-meta"><span>名称</span><b id="pcpMetaName">—</b></div>
+          <div class="pcp-meta"><span>尺寸</span><b id="pcpMetaSize">—</b></div>
+          <div class="pcp-meta"><span>列数</span><b id="pcpMetaCols">1</b></div>
+        </div>
         <div class="pcp-canvas-wrap" id="pcCanvasWrap">
           <div class="paper-hint" id="paperSizeTag">50 × 40 mm</div>
           <canvas id="pcCanvas"></canvas>
         </div>
         <div class="pcp-foot">
+          <div class="pcp-pager">
+            <button id="pcpFirst" title="第一张">⏮</button>
+            <button id="pcpPrev" title="上一张">◀</button>
+            <span class="pcp-page-num"><input id="pcpPageInput" type="number" min="1" value="1" /> / <span id="pcpPageTotal">共 1 页</span></span>
+            <button id="pcpNext" title="下一张">▶</button>
+            <button id="pcpLast" title="最后一张">⏭</button>
+          </div>
           <span class="pcp-info" id="pcPageInfo">标签 1 / 1 · 单张预览</span>
         </div>
       </div>
