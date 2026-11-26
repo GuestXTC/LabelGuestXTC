@@ -11,9 +11,9 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win --x64",
+    "dist": "node scripts/build-win.js",
     "dist:dir": "electron-builder --win --x64 --dir",
-    "dist:win": "electron-builder --win --x64 --publish never",
+    "dist:win": "node scripts/build-win.js",
     "dist:mac": "electron-builder --mac --x64 --arm64 --publish never",
     "dist:linux": "electron-builder --linux --x64 --publish never",
     "dist:all": "electron-builder --win --mac --linux --x64"

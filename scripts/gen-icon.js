@@ -151,15 +151,20 @@ for (const size of SIZES) {
   console.log(`PNG ${size}x${size}: ${buf.length} bytes`);
 }
 
+// ICO directory entries must describe the ACTUAL embedded image size.
+// A 512px PNG cannot be labeled as 256 (0) — that malformed entry makes
+// Windows / electron-builder reject the whole ICO and fall back to the
+// default Electron icon. Only include sizes <= 256 in the ICO.
+const icoEntries = entries.filter(e => e.size <= 256);
 const icoHeader = Buffer.alloc(6);
 icoHeader.writeUInt16LE(0, 0);
 icoHeader.writeUInt16LE(1, 2);
-icoHeader.writeUInt16LE(entries.length, 4);
-const dir = Buffer.alloc(16 * entries.length);
-let offset = 6 + 16 * entries.length;
-entries.forEach((e, i) => {
+icoHeader.writeUInt16LE(icoEntries.length, 4);
+const dir = Buffer.alloc(16 * icoEntries.length);
+let offset = 6 + 16 * icoEntries.length;
+icoEntries.forEach((e, i) => {
   const d = i * 16;
-  dir[d] = e.size >= 256 ? 0 : e.size;
+  dir[d] = e.size >= 256 ? 0 : e.size;      // 0 means 256 in ICO format
   dir[d + 1] = e.size >= 256 ? 0 : e.size;
   dir[d + 2] = 0;
   dir[d + 3] = 0;
@@ -169,7 +174,7 @@ entries.forEach((e, i) => {
   dir.writeUInt32LE(offset, d + 12);
   offset += e.buf.length;
 });
-const ico = Buffer.concat([icoHeader, dir, ...entries.map(e => e.buf)]);
+const ico = Buffer.concat([icoHeader, dir, ...icoEntries.map(e => e.buf)]);
 const icoPath = path.join(OUT_DIR, 'icon.ico');
 fs.writeFileSync(icoPath, ico);
 console.log(`ICO: ${icoPath} (${ico.length} bytes)`);
