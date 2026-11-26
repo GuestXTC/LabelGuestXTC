@@ -47,7 +47,7 @@ function uid() { return 'el_' + Math.random().toString(36).slice(2, 9); }
 function defaultElement(type) {
   const base = { id: uid(), type, name: typeName(type), x: 8, y: 8, w: 40, h: 16, rotation: 0, field: '', locked: false, hidden: false };
   switch (type) {
-    case 'text':    return Object.assign(base, { text: '双击编辑文本', fontFamily: 'Microsoft YaHei', fontSize: 5, bold: false, italic: false, underline: false, strike: false, inverse: false, letterSpacing: 0, lineSpacing: 1.15, color: '#111111', align: 'left' });
+    case 'text':    return Object.assign(base, { text: '双击编辑文本', fontFamily: 'Microsoft YaHei', fontSize: 5, bold: false, italic: false, underline: false, strike: false, inverse: false, letterSpacing: 0, lineSpacing: 1.15, color: '#111111', align: 'left', contentType: 'static', scale: 100, printColor: '', hint: '', fieldShare: '', promptOnOpen: false });
     case 'barcode': return Object.assign(base, { w: 60, h: 20, value: '123456789012', format: 'CODE128', displayValue: true, lineColor: '#111111', textPosition: 'bottom', moduleWidth: 2, textGap: 0 });
     case 'qrcode':  return Object.assign(base, { w: 25, h: 25, value: 'https://example.com', ec: 'M', symbolVersion: 'auto', charset: 'ANSI', textPosition: 'none' });
     case 'image':   return Object.assign(base, { w: 30, h: 30, src: '', grayscale: false, opacity: 1 });
@@ -56,6 +56,8 @@ function defaultElement(type) {
     case 'triangle':return Object.assign(base, { w: 30, h: 26, fill: '#ffffff', stroke: '#111111', strokeWidth: 0.4 });
     case 'line':    return Object.assign(base, { w: 40, h: 0, stroke: '#111111', strokeWidth: 0.4 });
     case 'blackout':return Object.assign(base, { w: 30, h: 20, fill: '#000000', radius: 0 });
+    case 'excel':   return Object.assign(base, { w: 60, h: 30, rows: 2, cols: 2, colRatios: [1,1], rowRatios: [1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111', dataSource: '' });
+    case 'page':    return Object.assign(base, { type: 'text', name: '页码', contentType: 'page', text: '1', fontFamily: 'Microsoft YaHei', fontSize: 5, color: '#111111', align: 'center' });
     case 'table':   return Object.assign(base, { w: 60, h: 24, rows: 3, cols: 3, colRatios: [1,1,1], rowRatios: [1,1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111' });
     case 'date':    return Object.assign(base, { type: 'text', name: '日期时间', dynamic: 'date', text: 'YYYY-MM-DD', w: 40, h: 10, fontFamily: 'Microsoft YaHei', fontSize: 5, color: '#111111', align: 'left', dateFormat: 'YYYY-MM-DD', dateUnit: 'day', dateStep: 0 });
     default:        return base;
@@ -63,7 +65,7 @@ function defaultElement(type) {
 }
 
 function typeName(t) {
-  return ({ text: '文本', barcode: '一维码', qrcode: '二维码', image: '图片', rect: '矩形', ellipse: '椭圆', triangle: '三角形', line: '线条', table: '表格', blackout: '区域反黑' })[t] || t;
+  return ({ text: '文本', barcode: '一维码', qrcode: '二维码', image: '图片', rect: '矩形', ellipse: '椭圆', triangle: '三角形', line: '线条', table: '表格', blackout: '区域反黑', excel: 'Excel数据', page: '页码' })[t] || t;
 }
 
 function typeIcon(t) {
@@ -226,6 +228,7 @@ function drawElement(c, el, scale, opt) {
   }
   switch (el.type) {
     case 'text':    drawText(c, el, opt); break;
+    case 'page':    drawText(c, Object.assign({}, el, { type: 'text', text: String(opt.pageNo != null ? opt.pageNo : 1) }), opt); break;
     case 'barcode': drawBarcode(c, el, scale, opt); break;
     case 'qrcode':  drawQR(c, el, opt); break;
     case 'image':   drawImageEl(c, el); break;
@@ -235,6 +238,7 @@ function drawElement(c, el, scale, opt) {
     case 'triangle':drawTriangle(c, el); break;
     case 'line':    drawLine(c, el); break;
     case 'table':   drawTable(c, el, opt); break;
+    case 'excel':   drawTable(c, el, opt); break;
   }
   c.restore();
 }
@@ -448,6 +452,90 @@ function bindTableCtxMenu() {
   });
 }
 
+/* ---------------- icon library ---------------- */
+// Original vector icons (simple geometric paths, no third-party assets).
+const ICON_LIB = {
+  '常用': [
+    ['星', '<path d="M12 2l3 6.5 7 .9-5 4.8 1.3 7L12 17.8 5.7 21.2 7 14.2 2 9.4l7-.9z"/>'],
+    ['心', '<path d="M12 21s-8-4.9-8-10.5A4.5 4.5 0 0112 7a4.5 4.5 0 018 3.5C20 16.1 12 21 12 21z"/>'],
+    ['勾', '<path d="M4 12l5 5L20 6" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'],
+    ['叉', '<path d="M5 5l14 14M19 5L5 19" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>'],
+    ['铃', '<path d="M18 16v-5a6 6 0 10-12 0v5l-2 2h16zM10 21h4"/>'],
+    ['锁', '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3" fill="none" stroke="#000" stroke-width="2"/>'],
+    ['钥匙', '<circle cx="8" cy="8" r="4" fill="none" stroke="#000" stroke-width="2"/><path d="M11 11l8 8M16 16l2-2M18 18l2-2" stroke="#000" stroke-width="2" fill="none"/>'],
+    ['齿轮', '<path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="#000" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="#000" stroke-width="2"/>'],
+    ['放大镜', '<circle cx="10" cy="10" r="6" fill="none" stroke="#000" stroke-width="2"/><path d="M15 15l6 6" stroke="#000" stroke-width="2.4" stroke-linecap="round"/>'],
+    ['灯泡', '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0012 3z" fill="none" stroke="#000" stroke-width="1.8" stroke-linejoin="round"/>']
+  ],
+  '认证标志': [
+    ['P', '<circle cx="12" cy="12" r="9" fill="none" stroke="#000" stroke-width="1.8"/><text x="12" y="17" font-size="13" font-weight="700" text-anchor="middle" fill="#000">P</text>'],
+    ['W', '<circle cx="12" cy="12" r="9" fill="none" stroke="#000" stroke-width="1.8"/><text x="12" y="17" font-size="12" font-weight="700" text-anchor="middle" fill="#000">W</text>'],
+    ['F', '<circle cx="12" cy="12" r="9" fill="none" stroke="#000" stroke-width="1.8"/><text x="12" y="17" font-size="13" font-weight="700" text-anchor="middle" fill="#000">F</text>'],
+    ['A', '<circle cx="12" cy="12" r="9" fill="none" stroke="#000" stroke-width="1.8"/><text x="12" y="17" font-size="13" font-weight="700" text-anchor="middle" fill="#000">A</text>'],
+    ['RoHS', '<rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="#000" stroke-width="1.6"/><text x="12" y="15" font-size="7" font-weight="700" text-anchor="middle" fill="#000">RoHS</text>'],
+    ['CE', '<text x="12" y="17" font-size="14" font-weight="700" text-anchor="middle" fill="#000">CE</text>'],
+    ['回收', '<path d="M8 5l-4 7 3 1M16 5l4 7-3 1M12 3l2 4h-4zM6 18l2-4 2 1M18 18l-2-4-2 1" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>']
+  ],
+  '图形': [
+    ['圆', '<circle cx="12" cy="12" r="8" fill="none" stroke="#000" stroke-width="2"/>'],
+    ['方', '<rect x="4" y="4" width="16" height="16" rx="1" fill="none" stroke="#000" stroke-width="2"/>'],
+    ['三角', '<path d="M12 3L21 20H3z" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round"/>'],
+    ['菱形', '<path d="M12 2L22 12 12 22 2 12z" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round"/>'],
+    ['六边形', '<path d="M7 3l10 0 5 9-5 9H7l-5-9z" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round"/>'],
+    ['上箭头', '<path d="M12 3l6 8h-4v10h-4V11H6z"/>'],
+    ['下箭头', '<path d="M12 21l-6-8h4V3h4v10h4z"/>'],
+    ['左箭头', '<path d="M3 12l8-6v4h10v4H11v4z"/>'],
+    ['右箭头', '<path d="M21 12l-8 6v-4H3v-4h10V8z"/>']
+  ],
+  '符号': [
+    ['勾圆', '<circle cx="12" cy="12" r="9" fill="none" stroke="#000" stroke-width="1.8"/><path d="M8 12l3 3 5-6" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/>'],
+    ['警告', '<path d="M12 3L2 21h20z" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v6M12 17.5v.5" stroke="#000" stroke-width="2" stroke-linecap="round"/>'],
+    ['信息', '<circle cx="12" cy="12" r="9" fill="none" stroke="#000" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="#000" stroke-width="2.2" stroke-linecap="round"/>'],
+    ['问号', '<circle cx="12" cy="12" r="9" fill="none" stroke="#000" stroke-width="1.8"/><path d="M9.5 9a2.5 2.5 0 115 1c0 1.5-2.5 2-2.5 4M12 17.5v.5" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round"/>'],
+    ['邮箱', '<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="#000" stroke-width="1.8"/><path d="M3 7l9 6 9-6" fill="none" stroke="#000" stroke-width="1.8"/>'],
+    ['电话', '<path d="M6 3h4l2 5-3 2a12 12 0 005 5l2-3 5 2v4c0 1-1 2-2 2A16 16 0 014 5c0-1 1-2 2-2z" fill="none" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>'],
+    ['日期', '<rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="#000" stroke-width="1.8"/><path d="M3 10h18M8 3v4M16 3v4" stroke="#000" stroke-width="1.8"/>']
+  ]
+};
+function iconDataUrl(path) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96" height="96">${path}</svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+let iconCat = '常用';
+function renderIconLib() {
+  const tabs = $('#ilTabs'), grid = $('#ilGrid');
+  if (!tabs || !grid) return;
+  tabs.innerHTML = Object.keys(ICON_LIB).map(k => `<button class="il-tab${k === iconCat ? ' active' : ''}" data-cat="${k}">${k}</button>`).join('');
+  tabs.querySelectorAll('.il-tab').forEach(b => b.onclick = () => { iconCat = b.dataset.cat; renderIconLib(); });
+  grid.innerHTML = '';
+  for (const [name, path] of ICON_LIB[iconCat] || []) {
+    const item = document.createElement('div');
+    item.className = 'il-item'; item.title = name;
+    const img = document.createElement('img');
+    img.src = iconDataUrl(path); img.alt = name;
+    item.appendChild(img);
+    item.onclick = () => {
+      const el = defaultElement('image');
+      el.src = img.src; el.w = 16; el.h = 16;
+      el.name = '图标 ' + name;
+      el.x = Math.max(2, (doc.width - el.w) / 2);
+      el.y = Math.max(2, (doc.height - el.h) / 2);
+      doc.elements.push(el);
+      selectedId = el.id; selectedIds = [el.id];
+      commit(); refreshAll();
+      $('#iconLibModal').hidden = true;
+      toast('已插入图标：' + name);
+    };
+    grid.appendChild(item);
+  }
+}
+function bindIconLib() {
+  if (!$('#iconLibModal')) return;
+  if ($('#btnIconLib')) $('#btnIconLib').onclick = () => { renderIconLib(); $('#iconLibModal').hidden = false; };
+  if ($('#ilClose')) $('#ilClose').onclick = () => { $('#iconLibModal').hidden = true; };
+  $('#iconLibModal').addEventListener('click', (e) => { if (e.target.id === 'iconLibModal') $('#iconLibModal').hidden = true; });
+}
+
 // Table grid lines. Internal segments covered by a merged cell are omitted so
 // a merged region renders as one big cell.
 function drawTable(c, el, opt) {
@@ -496,7 +584,7 @@ function drawTable(c, el, opt) {
   }
 }
 
-function fontPx(el) { return (el.fontSize || 5) * 1.0; } // in mm-units of ctx
+function fontPx(el) { return (el.fontSize || 5) * (Math.max(10, parseFloat(el.scale) || 100) / 100); } // in mm-units of ctx
 
 // Dynamic date/time element: formats current date with day/month/year offset.
 function computeDynamicDate(el) {
@@ -518,6 +606,8 @@ function computeDynamicDate(el) {
 function drawText(c, el, opt) {
   let text = resolvedValue(el.text, opt.record, opt.batchEnabled, el);
   if (el.dynamic === 'date' || el.dynamic === 'time') text = computeDynamicDate(el);
+  else if (el.contentType === 'serial' && opt.record) text = opt.record.__serial != null ? String(opt.record.__serial) : (el.text || '');
+  else if ((el.contentType === 'date' || el.contentType === 'time') && !el.dynamic) text = computeDynamicDate(el);
   const size = fontPx(el);
   // Quote ONLY the family name; sans-serif must be a separate fallback token.
   // Wrapping "微软雅黑, sans-serif" in one pair of quotes makes an invalid
@@ -531,7 +621,7 @@ function drawText(c, el, opt) {
   c.textAlign = 'left';
   const align = ['center', 'right', 'justify', 'distribute'].indexOf(el.align) >= 0 ? el.align : 'left';
   const ls = el.letterSpacing || 0; // mm per char
-  const color = el.color || '#111';
+  const color = (opt.forExport && el.printColor) ? el.printColor : (el.color || '#111');
   const lines = String(text).split('\n');
   const lineH = size * (el.lineSpacing || 1.15);
   const totalH = (lines.length - 1) * lineH + size;
@@ -1593,6 +1683,8 @@ function refreshProps() {
   const sec = (t) => { const d = div('prop-sec'); d.textContent = t; target.appendChild(d); };
 
   if (el.type === 'text') {
+    sec('内容类型');
+    addSelect('类型', 'contentType', [['static', '普通文字'], ['serial', '序列号'], ['date', '日期时间'], ['field', '字段共享']]);
     sec('文本');
     const row = div('prop-row'); row.innerHTML = '<label>内容 (支持 {字段})</label>';
     const ta = document.createElement('textarea'); ta.value = el.text || '';
@@ -1603,9 +1695,15 @@ function refreshProps() {
     addSelect('对齐', 'align', [['left', '左'], ['center', '中'], ['right', '右']]);
     addText('字间距 (mm)', 'letterSpacing', el.letterSpacing || 0, 'number');
     addText('行间距 (倍数)', 'lineSpacing', el.lineSpacing || 1.15, 'number');
+    addText('缩放 (%)', 'scale', el.scale || 100, 'number');
     addCheck('粗体', 'bold'); addCheck('斜体', 'italic');
     addCheck('下划线', 'underline'); addCheck('删除线', 'strike'); addCheck('反白', 'inverse');
     addColorRow('颜色', 'color', el, p, commit, renderCanvas);
+    addColorRow('打印颜色', 'printColor', el, p, commit, renderCanvas);
+    sec('提示 · 共享');
+    addText('提示文字', 'hint', el.hint || '');
+    addText('字段共享名', 'fieldShare', el.fieldShare || '');
+    addCheck('打开时输入', 'promptOnOpen');
     if (el.dynamic === 'date') {
       sec('日期时间');
       addSelect('类型', 'dynamic', [['date', '日期'], ['time', '时间']]);
@@ -1658,7 +1756,14 @@ function refreshProps() {
     sec('区域反黑');
     addColorRow('填充', 'fill', el, p, commit, renderCanvas);
     addText('圆角半径 (mm)', 'radius', el.radius || 0, 'number');
-  } else if (el.type === 'table') {
+  } else if (el.type === 'table' || el.type === 'excel') {
+    if (el.type === 'excel') {
+      sec('Excel 数据源');
+      addText('数据源列', 'dataSource', el.dataSource || '');
+      const tip = div('side-tip');
+      tip.textContent = '可填写批次数据中的列名（如"品名"），打印时自动填充。单元格内容双击编辑。';
+      tip.style.cssText = 'font-size:10.5px;color:#8a95a5;line-height:1.5;margin-top:6px'; p.appendChild(tip);
+    }
     sec('表格 · 行列');
     const rg = div('prop-grid');
     const mkNum = (label, key, isSize) => {
@@ -1826,14 +1931,14 @@ function addElementByType(type, format) {
 }
 // Direct-add buttons (element bar + Ribbon insert tab). Sub-menu items are
 // excluded here and bound separately below.
-$$('.eb-item[data-add], .ribbon-big[data-add], .ribbon-small[data-add]').forEach(btn => {
-  if (btn.closest('.eb-menu')) return;
-  btn.onclick = () => {
-    setDrawMode(null);
-    addElementByType(btn.dataset.add);
-    $$('.eb-item.active, .ribbon-big.active, .ribbon-small.active').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  };
+$$('.eb-item[data-add], .ribbon-big[data-add], .ribbon-small[data-add], .tl-btn[data-add]').forEach(btn => {
+    if (btn.closest('.eb-menu')) return;
+    btn.onclick = () => {
+      setDrawMode(null);
+      addElementByType(btn.dataset.add);
+      $$('.eb-item.active, .ribbon-big.active, .ribbon-small.active, .tl-btn.active').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
 });
 function setDrawMode(mode) {
   drawMode = mode;
@@ -2256,7 +2361,7 @@ function serializeToDDL(targetDoc) {
       L.push(`   <drawobj${base}${attr('itemtype', '2')}${attr('radius', e.type === 'ellipse' ? '1' : '0')}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}${attr('pattern', '0')}></drawobj>`);
     } else if (e.type === 'line') {
       L.push(`   <drawobj${base}${attr('itemtype', '1')}${attr('linestartx', round(e.x))}${attr('linestarty', round(e.y))}${attr('linelength', round(Math.hypot(e.w, e.h)))}${attr('linedegree', round(Math.atan2(e.h, e.w) * 180 / Math.PI))}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}></drawobj>`);
-    } else if (e.type === 'table') {
+    } else if (e.type === 'table' || e.type === 'excel') {
       // Emit grid cells with merge spans (crossColumns/crossRows) and real
       // per-column widths so the same layout is preserved on reopen.
       const rows = Math.max(1, e.rows || 1), cols = Math.max(1, e.cols || 1);
@@ -2520,6 +2625,20 @@ function loadDocumentText(text, filePath) {
   return { doc: parseDDL(s), type: 'ddl' };
 }
 
+// Prompt for values on elements marked "打开时输入" right after opening a doc.
+function promptOnOpenFields() {
+  const targets = (doc.elements || []).filter(e => e.promptOnOpen && e.type === 'text');
+  if (!targets.length) return;
+  setTimeout(() => {
+    for (const el of targets) {
+      const label = el.hint || el.name || el.fieldShare || '文本';
+      const v = window.prompt('请输入「' + label + '」的内容：', el.text || '');
+      if (v != null && v !== el.text) { el.text = v; commit(); }
+    }
+    refreshAll();
+  }, 120);
+}
+
 function loadFromOpenResult(r) {
   if (!r || !r.ok) { if (r && r.error) toast('打开失败：' + r.error); return; }
   try {
@@ -2529,6 +2648,7 @@ function loadFromOpenResult(r) {
     const base = String(r.path || '').split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
     if (base) res.doc.name = base;
     applyDoc(res.doc, { path: r.path, type: res.type });
+    promptOnOpenFields();
     const n = res.doc.elements.length;
     const name = String(r.path || '').split(/[\\/]/).pop();
     if (n) toast('已打开 ' + name + '：' + n + ' 个元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
@@ -3154,6 +3274,7 @@ function init() {
   bindUpdateToast();
   bindNewLabelDialog();
   bindTableCtxMenu();
+  bindIconLib();
   // Defer the network check so it never delays first paint.
   setTimeout(checkForUpdate, 1200);
   // Start with NO document tab (no stray "未命名标签"). A blank working doc
