@@ -1440,6 +1440,9 @@ document.addEventListener('keydown', (ev) => {
   if (mod && key === 'c') { ev.preventDefault(); copySelected(); return; }
   if (mod && key === 'v') { ev.preventDefault(); pasteClipboard(); return; }
   if (mod && key === 'a') { ev.preventDefault(); selectAll(); return; }
+  // Ctrl/Cmd+S saves even while typing in a field — never let the browser's
+  // "save page" dialog take over.
+  if (mod && key === 's') { ev.preventDefault(); closeInlineEdit(true); saveDocFlow(); return; }
   if (typing) return;
   if (ev.key === 'Escape' && drawMode) { ev.preventDefault(); setDrawMode(null); return; }
   if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); removeSelected(); return; }
@@ -2340,7 +2343,7 @@ function contentFor(type) {
   return type === 'ddl' ? serializeToDDL(doc) : JSON.stringify(doc, null, 2);
 }
 
-$('#btnSave').onclick = async () => {
+async function saveDocFlow() {
   if (currentFile && currentFile.path) {
     const r = await api.file.saveTo(currentFile.path, contentFor(currentFile.type));
     if (r.ok) toast('已保存: ' + r.file);
@@ -2348,7 +2351,8 @@ $('#btnSave').onclick = async () => {
   } else {
     await saveAsFlow();
   }
-};
+}
+$('#btnSave').onclick = saveDocFlow;
 
 $('#btnSaveAs').onclick = async () => { await saveAsFlow(); };
 
