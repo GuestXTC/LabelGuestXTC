@@ -18,11 +18,11 @@
 
 | 平台 | 下载地址 |
 |------|----------|
-| Windows | [安装包 .exe](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.7.4/LabelGuestXTC-Setup-4.7.4.exe) |
-| macOS | [Apple 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.7.4/LabelGuestXTC-4.7.4-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.7.4/LabelGuestXTC-4.7.4-x64.dmg) |
-| Linux | [AppImage](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.7.4/LabelGuestXTC-4.7.4-x86_64.AppImage) · [.deb](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.7.4/LabelGuestXTC-4.7.4-amd64.deb) |
+| Windows | [安装包 .exe](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.8.0/LabelGuestXTC-Setup-4.8.0.exe) |
+| macOS | [Apple 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.8.0/LabelGuestXTC-4.8.0-arm64.dmg) · [Intel 芯片 .dmg](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.8.0/LabelGuestXTC-4.8.0-x64.dmg) |
+| Linux | [AppImage](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.8.0/LabelGuestXTC-4.8.0-x86_64.AppImage) · [.deb](https://github.com/GuestXTC/LabelGuestXTC/releases/download/v4.8.0/LabelGuestXTC-4.8.0-amd64.deb) |
 
-全部版本见 [Releases 页面](https://github.com/GuestXTC/LabelGuestXTC/releases/tag/v4.7.4)。
+全部版本见 [Releases 页面](https://github.com/GuestXTC/LabelGuestXTC/releases/tag/v4.8.0)。
 
 ---
 
@@ -89,9 +89,13 @@
   - 自动枚举系统打印机，可手动选择 `50X40` / `100X70` 等标签机
   - 批量打印逐张发送，每张独立控制走纸
 - **普通打印机模式（系统打印）**：走系统打印对话框，适用于桌面打印机/针式打印机
-- 无需额外安装任何驱动库或原生模块（Windows 用 PowerShell + winspool 纯 ASCII 脚本内联）
+- 无需额外安装任何驱动库或原生模块（Windows 用 PowerShell + winspool 纯 ASCII 脚本内联；macOS / Linux 用系统自带 CUPS 的 `lp` 原始打印）
 
-> **平台说明**：标签机 TSPL 原始指令直发依赖 Windows RAW 端口，目前**仅在 Windows 可用**；macOS / Linux 版本支持设计、导出 PNG/PDF 与系统打印，TSPL 直发功能暂不可用（欢迎贡献适配）。
+> **平台说明**：标签机 TSPL 原始指令直发三平台均可用——Windows 走 RAW 端口（`WritePrinter`），macOS / Linux 走 CUPS 原始打印（`lp -o raw`，需打印机队列支持 RAW 模式）。若 CUPS 队列会过滤数据导致打印异常，可创建专用 RAW 队列：
+> ```bash
+> sudo lpadmin -p LABEL_RAW -E -v <打印机设备URI> -m raw
+> ```
+> 然后在打印中心选择该队列。macOS / Linux 同样支持设计、导出 PNG/PDF 与系统打印。
 
 ### 存储与输出
 - 保存/打开本项目的 `.xtc` 标签文件（无内置模板库）

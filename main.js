@@ -319,9 +319,39 @@ function getRawPsPath() {
   return rawPsPath;
 }
 
+// macOS / Linux: send the TSPL byte stream through CUPS in raw mode so the
+// printer receives our bytes verbatim (no GDI/filter conversion). `lp -o raw`
+// requires a raw-capable queue; we also try `lpr -l` as a fallback.
+async function sendRawUnix(printerName, buffer, dataPath) {
+  const attempts = [
+    { cmd: 'lp', args: ['-d', printerName, '-o', 'raw', dataPath] },
+    { cmd: 'lp', args: ['-d', printerName, '-o', 'document-format=application/vnd.cups-raw', dataPath] },
+    { cmd: 'lpr', args: ['-P', printerName, '-l', dataPath] }
+  ];
+  let lastErr = '';
+  for (const a of attempts) {
+    try {
+      await execFileAsync(a.cmd, a.args, { maxBuffer: 1024 * 1024 });
+      return { ok: true, written: buffer.length, via: a.cmd };
+    } catch (e) {
+      lastErr = (e.stderr || e.message || '').toString().trim().slice(0, 200);
+    }
+  }
+  return { ok: false, error: 'CUPS 原始打印失败：' + lastErr + '。请确认打印机队列支持 RAW 模式（lpadmin -p <队列> -E -v <设备> -m raw）。' };
+}
+
 async function sendRaw(printerName, buffer) {
+  if (!printerName) return { ok: false, error: '未选择打印机' };
   if (process.platform !== 'win32') {
-    return { ok: false, error: 'TSPL 原始指令打印目前仅支持 Windows，macOS/Linux 请使用系统打印或导出 PDF/PNG。' };
+    const dataPath = path.join(os.tmpdir(), 'labelstudio_job_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.bin');
+    fs.writeFileSync(dataPath, buffer);
+    try {
+      return await sendRawUnix(printerName, buffer, dataPath);
+    } catch (e) {
+      return { ok: false, error: (e.stderr || e.message || '').toString().trim().slice(0, 300) };
+    } finally {
+      try { fs.unlinkSync(dataPath); } catch (_) {}
+    }
   }
   const psPath = getRawPsPath();
   const dataPath = path.join(os.tmpdir(), 'labelstudio_job_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.bin');
