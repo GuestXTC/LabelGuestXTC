@@ -16,6 +16,13 @@ const api = {
   data: {
     open: () => ipcRenderer.invoke('data:open')
   },
+  db: {
+    test: (config) => ipcRenderer.invoke('db:test', config),
+    tables: (config) => ipcRenderer.invoke('db:tables', config),
+    query: (config, sql, maxRows) => ipcRenderer.invoke('db:query', { config, sql, maxRows }),
+    loadConfigs: () => ipcRenderer.invoke('db:configs:load'),
+    saveConfigs: (configs) => ipcRenderer.invoke('db:configs:save', configs)
+  },
   exportFile: {
     png: (name, dataUrl) => ipcRenderer.invoke('export:save-png', { name, dataUrl }),
     pdf: (name, base64) => ipcRenderer.invoke('export:save-pdf', { name, base64 })

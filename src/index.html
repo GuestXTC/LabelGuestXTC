@@ -227,6 +227,7 @@
       <div class="ribbon-group">
         <div class="ribbon-group-body">
           <button class="ribbon-big" id="btnImportData" title="导入 Excel / CSV / TXT"><svg class="i"><use href="#i-db"/></svg><span>导入数据</span></button>
+          <button class="ribbon-big" id="btnDbConnect" title="连接 MySQL / SQL Server 数据库"><svg class="i"><use href="#i-db"/></svg><span>数据库连接</span></button>
           <div class="ribbon-stack">
             <button class="ribbon-small" id="btnBatchClear"><svg class="i"><use href="#i-trash"/></svg>清空数据</button>
           </div>
@@ -496,6 +497,75 @@
         <button id="btnPcCancel" class="tb-btn">取消</button>
         <button id="btnPcPrint" class="tb-btn print"><svg class="i"><use href="#i-print"/></svg>开始打印</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Database connection dialog -->
+<div class="modal-mask" id="dbModal" hidden>
+  <div class="db-dialog">
+    <div class="nl-head">
+      <div class="nl-title"><svg class="i"><use href="#i-db"/></svg><b>数据库连接</b></div>
+      <button class="modal-x" id="dbClose" title="关闭"><svg class="i"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="db-body">
+      <div class="db-sources">
+        <div class="db-sec-title">数据源</div>
+        <button class="db-source" data-type="excel"><svg class="i"><use href="#i-excel"/></svg>Microsoft Excel</button>
+        <button class="db-source" data-type="text"><svg class="i"><use href="#i-text"/></svg>文本文件</button>
+        <button class="db-source active" data-type="mysql"><svg class="i"><use href="#i-db"/></svg>My SQL</button>
+        <button class="db-source" data-type="access"><svg class="i"><use href="#i-db"/></svg>Microsoft Access</button>
+        <button class="db-source" data-type="sqlserver"><svg class="i"><use href="#i-db"/></svg>Microsoft SQL Serve</button>
+        <div class="db-sec-title">已保存</div>
+        <div id="dbSavedList" class="db-saved-list"><span class="db-empty">无</span></div>
+      </div>
+      <div class="db-main">
+        <div class="db-sec-title" id="dbFormTitle">数据源 · My SQL</div>
+        <div class="db-form">
+          <label class="db-row"><span>连接名称</span>
+            <span class="db-inline"><input id="dbName" type="text" list="dbNameList" placeholder="输入或选择已保存的连接" /><datalist id="dbNameList"></datalist></span>
+          </label>
+          <div class="db-subsec">数据源</div>
+          <label class="db-row"><span>主机</span><input id="dbHost" type="text" value="localhost" /></label>
+          <div class="db-row db-two">
+            <label class="db-field"><span>端口</span><input id="dbPort" type="number" value="3306" /></label>
+            <label class="db-field"><span id="dbDbLabel">数据源名称</span><input id="dbDatabase" type="text" placeholder="database" /></label>
+          </div>
+          <div class="db-subsec">SQL 验证</div>
+          <div class="db-row db-two">
+            <label class="db-field"><span>用户名</span><input id="dbUser" type="text" placeholder="root" /></label>
+            <label class="db-field"><span>密码</span><span class="db-pwd"><input id="dbPassword" type="password" /><button type="button" id="dbPwdToggle" title="显示/隐藏">👁</button></span></label>
+          </div>
+          <label class="db-row chk-row"><span>保存密码</span><input id="dbSavePwd" type="checkbox" checked /></label>
+          <div class="db-row advanced-row" id="dbAdvancedRow">
+            <span>高级</span>
+            <span class="db-inline">
+              <label class="db-mini">超时 <input id="dbTimeout" type="number" value="10" min="2" max="60" /> 秒</label>
+              <label class="db-mini" id="dbEncryptWrap"><input id="dbEncrypt" type="checkbox" /> 加密连接</label>
+            </span>
+          </div>
+          <div class="db-actions">
+            <button class="db-test" id="dbTest"><svg class="i"><use href="#i-refresh"/></svg>测试连接</button>
+            <button class="db-save" id="dbSave">保存配置</button>
+            <span class="db-test-result" id="dbTestResult"></span>
+          </div>
+        </div>
+        <div class="db-sec-title">数据查询</div>
+        <div class="db-query">
+          <textarea id="dbSql" placeholder="SELECT * FROM 表名" spellcheck="false">SELECT * FROM </textarea>
+          <div class="db-query-bar">
+            <button id="dbGetTables" class="tb-btn ghost">获取表列表</button>
+            <select id="dbTableSelect" title="选择表后自动生成 SELECT"><option value="">（选择表）</option></select>
+            <label class="db-max">最多 <input id="dbMaxRows" type="number" value="1000" min="1" max="10000" /> 行</label>
+            <button id="dbRun" class="db-run">执行查询并载入数据</button>
+          </div>
+          <div class="db-status" id="dbStatus">连接后可执行查询，结果会载入底部数据库面板用于变量打印。</div>
+        </div>
+      </div>
+    </div>
+    <div class="db-foot">
+      <button class="tb-btn" id="dbCancel">取消</button>
+      <button class="nl-primary" id="dbDone">确定</button>
     </div>
   </div>
 </div>

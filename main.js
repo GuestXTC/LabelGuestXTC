@@ -468,6 +468,48 @@ ipcMain.handle('app:open-external', async (event, url) => {
 ipcMain.handle('app:version', async () => app.getVersion());
 ipcMain.handle('app:userData', async () => app.getPath('userData'));
 
+// ---- Database connections (MySQL / SQL Server) --------------------------
+// Connection/query logic lives in db-core.js (shared with tests); the main
+// process only wires it to IPC and persists saved configs locally.
+const dbCore = require('./db-core');
+
+function dbConfigPath() { return path.join(app.getPath('userData'), 'db-connections.json'); }
+
+function readDbConfigs() {
+  try {
+    const p = dbConfigPath();
+    if (!fs.existsSync(p)) return {};
+    const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+    return (j && typeof j === 'object') ? j : {};
+  } catch (e) { return {}; }
+}
+function writeDbConfigs(cfg) {
+  try {
+    fs.writeFileSync(dbConfigPath(), JSON.stringify(cfg || {}, null, 2), 'utf8');
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+ipcMain.handle('db:test', async (event, cfg) => {
+  try { return await dbCore.testConnection(cfg || {}); }
+  catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+});
+
+ipcMain.handle('db:tables', async (event, cfg) => {
+  try { return await dbCore.listTables(cfg || {}); }
+  catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+});
+
+ipcMain.handle('db:query', async (event, payload) => {
+  try {
+    if (!payload || !payload.config) return { ok: false, error: '缺少连接配置' };
+    return await dbCore.query(payload.config, payload.sql, payload.maxRows);
+  } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+});
+
+ipcMain.handle('db:configs:load', async () => readDbConfigs());
+ipcMain.handle('db:configs:save', async (event, cfg) => writeDbConfigs(cfg));
+
 // ---- Update check -------------------------------------------------------
 // Silently asks GitHub for the latest release. Never blocks startup: a short
 // timeout and swallowed errors keep the app fully offline-friendly.

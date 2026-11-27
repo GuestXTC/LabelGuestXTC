@@ -2777,6 +2777,179 @@ async function importData() {
     toast('解析失败: ' + e.message);
   }
 }
+/* ---------------- database connection ---------------- */
+let dbType = 'mysql';
+let dbConfigs = {};
+function dbApi() { return (api && api.db) ? api.db : null; }
+function dbFormConfig() {
+  return {
+    type: dbType,
+    name: ($('#dbName').value || '').trim(),
+    host: ($('#dbHost').value || 'localhost').trim(),
+    port: parseInt($('#dbPort').value, 10) || (dbType === 'mysql' ? 3306 : 1433),
+    database: ($('#dbDatabase').value || '').trim(),
+    user: ($('#dbUser').value || '').trim(),
+    password: $('#dbPassword').value,
+    savePassword: $('#dbSavePwd').checked,
+    timeout: parseInt($('#dbTimeout').value, 10) || 10,
+    encrypt: $('#dbEncrypt').checked
+  };
+}
+function dbSetStatus(msg, kind) {
+  const el = $('#dbStatus'); if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'db-status' + (kind ? ' ' + kind : '');
+}
+function dbSetTestResult(msg, kind) {
+  const el = $('#dbTestResult'); if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'db-test-result' + (kind ? ' ' + kind : '');
+}
+function dbApplyConfig(cfg) {
+  dbType = cfg.type || 'mysql';
+  document.querySelectorAll('.db-source').forEach(b => b.classList.toggle('active', b.dataset.type === dbType));
+  $('#dbName').value = cfg.name || '';
+  $('#dbHost').value = cfg.host || 'localhost';
+  $('#dbPort').value = cfg.port || (dbType === 'mysql' ? 3306 : 1433);
+  $('#dbDatabase').value = cfg.database || '';
+  $('#dbUser').value = cfg.user || '';
+  $('#dbPassword').value = cfg.password || '';
+  $('#dbTimeout').value = cfg.timeout || 10;
+  $('#dbEncrypt').checked = !!cfg.encrypt;
+  $('#dbSavePwd').checked = cfg.savePassword !== false;
+  $('#dbEncryptWrap').style.display = dbType === 'sqlserver' ? '' : 'none';
+  $('#dbDbLabel').textContent = dbType === 'sqlserver' ? '数据源名称' : '数据库名';
+  $('#dbFormTitle').textContent = '数据源 · ' + (dbType === 'mysql' ? 'My SQL' : 'Microsoft SQL Server');
+  dbSetTestResult('');
+}
+async function dbLoadSaved() {
+  const dba = dbApi(); if (!dba || !dba.loadConfigs) return;
+  try { dbConfigs = await dba.loadConfigs() || {}; } catch (e) { dbConfigs = {}; }
+  const list = $('#dbSavedList'); if (!list) return;
+  const keys = Object.keys(dbConfigs);
+  const dl = $('#dbNameList');
+  if (dl) dl.innerHTML = keys.map(k => `<option value="${escapeHtml(k)}">`).join('');
+  if (!keys.length) { list.innerHTML = '<span class="db-empty">无</span>'; return; }
+  list.innerHTML = keys.map(k => `<div class="db-saved" data-key="${escapeHtml(k)}">${escapeHtml(k)} <button class="db-del" data-del="${escapeHtml(k)}" title="删除">✕</button></div>`).join('');
+  list.querySelectorAll('.db-saved').forEach(el => {
+    el.onclick = (e) => {
+      if (e.target.dataset.del) {
+        delete dbConfigs[e.target.dataset.del];
+        if (dba.saveConfigs) dba.saveConfigs(dbConfigs);
+        dbLoadSaved(); return;
+      }
+      dbApplyConfig(dbConfigs[el.dataset.key]);
+    };
+  });
+}
+function openDbDialog() {
+  if (!$('#dbModal')) return;
+  $('#dbModal').hidden = false;
+  dbSetStatus('连接数据库后可执行查询，结果会载入底部数据库面板用于变量打印。');
+  dbLoadSaved();
+  if (!$('#dbName').value) dbApplyConfig({ type: dbType, host: 'localhost', port: 3306 });
+}
+function closeDbDialog() { const m = $('#dbModal'); if (m) m.hidden = true; }
+function bindDbDialog() {
+  if (!$('#dbModal')) return;
+  if ($('#btnDbConnect')) $('#btnDbConnect').onclick = openDbDialog;
+  if ($('#dbClose')) $('#dbClose').onclick = closeDbDialog;
+  if ($('#dbCancel')) $('#dbCancel').onclick = closeDbDialog;
+  if ($('#dbDone')) $('#dbDone').onclick = async () => {
+    // "确定" saves the connection config (if a name/host was entered) and closes.
+    const cfg = dbFormConfig();
+    if (cfg.host && (dbType === 'mysql' || dbType === 'sqlserver')) {
+      const name = cfg.name || (cfg.database || cfg.host || '未命名连接');
+      cfg.name = name;
+      if (!cfg.savePassword) cfg.password = '';
+      dbConfigs[name] = cfg;
+      const dba = dbApi();
+      if (dba && dba.saveConfigs) await dba.saveConfigs(dbConfigs);
+    }
+    closeDbDialog();
+  };
+  $('#dbModal').addEventListener('click', (e) => { if (e.target.id === 'dbModal') closeDbDialog(); });
+  document.querySelectorAll('.db-source').forEach(b => {
+    b.onclick = async () => {
+      const t = b.dataset.type;
+      document.querySelectorAll('.db-source').forEach(x => x.classList.toggle('active', x === b));
+      if (t === 'excel' || t === 'text') {
+        // Reuse the proven file-import path; close dialog and import directly.
+        closeDbDialog();
+        await importData();
+        return;
+      }
+      if (t === 'access') {
+        dbSetStatus('Microsoft Access 暂未内置驱动。请先把 .mdb/.accdb 导出为 Excel，再用左侧「Microsoft Excel」导入。', 'fail');
+        return;
+      }
+      dbType = t;
+      $('#dbPort').value = dbType === 'mysql' ? 3306 : 1433;
+      $('#dbEncryptWrap').style.display = dbType === 'sqlserver' ? '' : 'none';
+      $('#dbDbLabel').textContent = dbType === 'sqlserver' ? '数据源名称' : '数据库名';
+      $('#dbFormTitle').textContent = '数据源 · ' + (dbType === 'mysql' ? 'My SQL' : 'Microsoft SQL Server');
+      $('#dbSql').value = dbType === 'mysql' ? 'SELECT * FROM ' : 'SELECT TOP 100 * FROM ';
+      dbSetTestResult('');
+    };
+  });
+  if ($('#dbPwdToggle')) $('#dbPwdToggle').onclick = () => {
+    const p = $('#dbPassword'); p.type = p.type === 'password' ? 'text' : 'password';
+  };
+  if ($('#dbTest')) $('#dbTest').onclick = async () => {
+    const dba = dbApi(); if (!dba) { dbSetTestResult('数据库接口不可用', 'fail'); return; }
+    dbSetTestResult('测试中…');
+    try {
+      const r = await dba.test(dbFormConfig());
+      dbSetTestResult(r.ok ? '✓ 连接成功' : ('✗ ' + r.error), r.ok ? 'ok' : 'fail');
+    } catch (e) { dbSetTestResult('✗ ' + e.message, 'fail'); }
+  };
+  if ($('#dbSave')) $('#dbSave').onclick = async () => {
+    const cfg = dbFormConfig();
+    const name = cfg.name || (cfg.database || cfg.host || '未命名连接');
+    cfg.name = name;
+    if (!cfg.savePassword) cfg.password = '';
+    dbConfigs[name] = cfg;
+    const dba = dbApi();
+    if (dba && dba.saveConfigs) await dba.saveConfigs(dbConfigs);
+    dbLoadSaved();
+    dbSetTestResult('✓ 已保存：' + name + (cfg.savePassword ? '' : '（未保存密码）'), 'ok');
+  };
+  if ($('#dbGetTables')) $('#dbGetTables').onclick = async () => {
+    const dba = dbApi(); if (!dba) return;
+    dbSetStatus('正在获取表列表…');
+    try {
+      const r = await dba.tables(dbFormConfig());
+      if (!r.ok) { dbSetStatus('获取失败：' + r.error, 'fail'); return; }
+      const sel = $('#dbTableSelect');
+      sel.innerHTML = '<option value="">（选择表）</option>' + r.tables.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+      dbSetStatus('已获取 ' + r.tables.length + ' 张表，选择后可自动生成查询。', 'ok');
+    } catch (e) { dbSetStatus('获取失败：' + e.message, 'fail'); }
+  };
+  if ($('#dbTableSelect')) $('#dbTableSelect').onchange = (e) => {
+    const t = e.target.value; if (!t) return;
+    if (dbType === 'mysql') $('#dbSql').value = 'SELECT * FROM `' + t.replace(/`/g, '``') + '`';
+    else $('#dbSql').value = 'SELECT TOP 100 * FROM ' + t.split('.').map(s => '[' + s.replace(/]/g, ']]') + ']').join('.');
+  };
+  if ($('#dbRun')) $('#dbRun').onclick = async () => {
+    const dba = dbApi(); if (!dba) { dbSetStatus('数据库接口不可用', 'fail'); return; }
+    const sql = $('#dbSql').value.trim();
+    if (!sql) { dbSetStatus('请先输入 SQL 查询语句', 'fail'); return; }
+    dbSetStatus('正在执行查询…');
+    try {
+      const r = await dba.query(dbFormConfig(), sql, parseInt($('#dbMaxRows').value, 10) || 1000);
+      if (!r.ok) { dbSetStatus('查询失败：' + r.error, 'fail'); return; }
+      if (!r.rows || !r.rows.length) { dbSetStatus('查询成功，但没有返回数据行', 'fail'); return; }
+      batchHeaders = r.columns && r.columns.length ? r.columns : Object.keys(r.rows[0]);
+      batchRows = r.rows;
+      $('#btnBatchOpen').textContent = '🗄 ' + (dbFormConfig().database || dbType) + ' (' + r.rows.length + ')';
+      renderBatchTable();
+      expandBatch();
+      $('#batchEnabled').checked = true;
+      dbSetStatus('✓ 已载入 ' + r.rows.length + ' 条记录到数据库面板，可用 {字段名} 变量打印。', 'ok');
+    } catch (e) { dbSetStatus('查询失败：' + e.message, 'fail'); }
+  };
+}
+
 function renderBatchTable() {
   const table = $('#batchTable');
   const thead = table.querySelector('thead'), tbody = table.querySelector('tbody');
@@ -3366,6 +3539,7 @@ function init() {
   bindNewLabelDialog();
   bindTableCtxMenu();
   bindIconLib();
+  bindDbDialog();
   // Defer the network check so it never delays first paint.
   setTimeout(checkForUpdate, 1200);
   // Start with NO document tab (no stray "未命名标签"). A blank working doc
