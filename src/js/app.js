@@ -1787,7 +1787,7 @@ function refreshProps() {
     opRow.appendChild(opInp); p.appendChild(opRow);
   } else if (el.type === 'rect' || el.type === 'ellipse' || el.type === 'triangle' || el.type === 'line') {
     sec('样式');
-    if (el.type !== 'line') addColorRow('填充', 'fill', el, p, commit, renderCanvas);
+    if (el.type !== 'line') addColorRow('填充', 'fill', el, p, commit, renderCanvas, true);
     addColorRow('线条', 'stroke', el, p, commit, renderCanvas);
     addText('线宽 (mm)', 'strokeWidth', el.strokeWidth, 'number');
     if (el.type === 'rect') addText('圆角半径 (mm)', 'radius', el.radius || 0, 'number');
@@ -1917,16 +1917,37 @@ function refreshProps() {
   p.appendChild(tail);
 }
 
-function addColorRow(label, key, el, parent, commitFn, renderFn) {
+function addColorRow(label, key, el, parent, commitFn, renderFn, allowNone) {
   const row = document.createElement('div'); row.className = 'prop-row';
   row.innerHTML = `<label>${label}</label>`;
   const wrap = document.createElement('div'); wrap.className = 'color-row';
   const cp = document.createElement('input'); cp.type = 'color'; cp.value = toHex(el[key] || '#111111');
   const tx = document.createElement('input'); tx.type = 'text'; tx.value = el[key] || '#111111';
+  const isNone = () => el[key] === 'transparent' || el[key] === 'none' || !el[key];
   cp.oninput = () => { el[key] = cp.value; tx.value = cp.value; renderFn(); };
   cp.onchange = commitFn;
   tx.onchange = () => { el[key] = tx.value; cp.value = toHex(tx.value); commitFn(); renderFn(); };
   wrap.appendChild(cp); wrap.appendChild(tx); row.appendChild(wrap); parent.appendChild(row);
+  if (allowNone) {
+    // "不填充" toggle: transparent has no color, so hide the color controls
+    // while enabled and restore a plain color when switched back off.
+    const noneRow = document.createElement('label'); noneRow.className = 'chk-row';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = isNone();
+    const txt = document.createElement('span'); txt.textContent = '不填充';
+    noneRow.appendChild(cb); noneRow.appendChild(txt);
+    const sync = () => {
+      const off = cb.checked;
+      wrap.style.display = off ? 'none' : '';
+      cp.disabled = off; tx.disabled = off;
+    };
+    cb.onchange = () => {
+      if (cb.checked) { el[key] = 'transparent'; }
+      else { el[key] = '#ffffff'; cp.value = '#ffffff'; tx.value = '#ffffff'; }
+      sync(); commitFn(); renderFn();
+    };
+    sync();
+    parent.appendChild(noneRow);
+  }
 }
 function toHex(c) { return /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#111111'; }
 
