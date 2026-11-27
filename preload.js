@@ -23,6 +23,11 @@ const api = {
     loadConfigs: () => ipcRenderer.invoke('db:configs:load'),
     saveConfigs: (configs) => ipcRenderer.invoke('db:configs:save', configs)
   },
+  printLog: {
+    add: (entry) => ipcRenderer.invoke('printlog:add', entry),
+    list: (filter) => ipcRenderer.invoke('printlog:list', filter || {}),
+    clear: () => ipcRenderer.invoke('printlog:clear')
+  },
   exportFile: {
     png: (name, dataUrl) => ipcRenderer.invoke('export:save-png', { name, dataUrl }),
     pdf: (name, base64) => ipcRenderer.invoke('export:save-pdf', { name, base64 })

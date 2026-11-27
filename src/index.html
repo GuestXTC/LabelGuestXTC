@@ -58,6 +58,7 @@
     <symbol id="i-blackout" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="currentColor"/></symbol>
     <symbol id="i-iconlib" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="5" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 18l3-4 3 4zM13 17h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
     <symbol id="i-excel" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8l8 8M16 8l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3 3v5h5M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-page" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="2"/><text x="12" y="17" font-size="8" text-anchor="middle" fill="currentColor">1</text></symbol>
   </defs>
 </svg>
@@ -96,6 +97,7 @@
         <div class="ribbon-group-body">
           <button class="ribbon-big" id="btnOpenDdl" title="打开标签文件 (.xtc / .ddl)"><svg class="i"><use href="#i-folder"/></svg><span>打开</span></button>
           <button class="ribbon-big primary" id="btnPrint" title="打印中心"><svg class="i"><use href="#i-print"/></svg><span>打印</span></button>
+          <button class="ribbon-big" id="btnPrintLog" title="查看打印记录"><svg class="i"><use href="#i-history"/></svg><span>打印记录</span></button>
           <button class="ribbon-big" id="btnSave" title="保存 Ctrl+S"><svg class="i"><use href="#i-save"/></svg><span>保存</span></button>
           <button class="ribbon-big" id="undoBtn" title="撤销 Ctrl+Z"><svg class="i"><use href="#i-undo"/></svg><span>撤销</span></button>
           <button class="ribbon-big" id="redoBtn" title="重做 Ctrl+Y"><svg class="i"><use href="#i-redo"/></svg><span>重做</span></button>
@@ -496,6 +498,38 @@
       <div class="pc-actions">
         <button id="btnPcCancel" class="tb-btn">取消</button>
         <button id="btnPcPrint" class="tb-btn print"><svg class="i"><use href="#i-print"/></svg>开始打印</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Print log dialog -->
+<div class="modal-mask" id="printLogModal" hidden>
+  <div class="pl-dialog">
+    <div class="nl-head">
+      <div class="nl-title"><svg class="i"><use href="#i-history"/></svg><b>打印记录</b></div>
+      <button class="modal-x" id="plClose" title="关闭"><svg class="i"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="pl-filters">
+      <input id="plKeyword" type="text" placeholder="搜索标签名 / 内容 / 目录…" />
+      <select id="plType"><option value="">全部类型</option><option value="打印">打印</option><option value="测试页">测试页</option><option value="PDF导出">PDF导出</option><option value="PNG导出">PNG导出</option></select>
+      <label>从 <input id="plFrom" type="date" /></label>
+      <label>到 <input id="plTo" type="date" /></label>
+      <button id="plSearch" class="tb-btn">查询</button>
+    </div>
+    <div class="pl-table-wrap">
+      <table class="pl-table">
+        <thead><tr><th style="width:145px">时间</th><th style="width:72px">类型</th><th style="width:130px">标签名</th><th>打印内容</th><th style="width:190px">文件目录</th><th style="width:56px">份数</th><th style="width:56px">状态</th></tr></thead>
+        <tbody id="plBody"></tbody>
+      </table>
+      <div id="plEmpty" class="pl-empty" hidden>暂无打印记录</div>
+    </div>
+    <div class="pl-foot">
+      <span id="plCount">共 0 条</span>
+      <div class="pl-actions">
+        <button id="plExport" class="tb-btn ghost">导出 CSV</button>
+        <button id="plClear" class="tb-btn ghost">清空记录</button>
+        <button id="plDone" class="nl-primary">关闭</button>
       </div>
     </div>
   </div>

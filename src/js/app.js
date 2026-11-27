@@ -3021,12 +3021,18 @@ $('#btnExportPng').onclick = () => {
   const records = buildRecords();
   if (records.length === 1 || !records[0]) {
     const c = renderToCanvas(null, 300);
-    api.exportFile.png(doc.name || '标签', c.toDataURL('image/png')).then(r => { if (r.ok) toast('PNG 已导出: ' + r.file); });
+    api.exportFile.png(doc.name || '标签', c.toDataURL('image/png')).then(r => {
+      addPrintLog('PNG导出', { record: null, pages: 1, success: !!r.ok, error: r.error || '' });
+      if (r.ok) toast('PNG 已导出: ' + r.file);
+    });
   } else {
     // export first record only for single PNG; tell user to use PDF for batch
     toast('批量数据请用「PDF」或「打印」导出多张；PNG 导出当前模板首张。');
     const c = renderToCanvas(records[0], 300);
-    api.exportFile.png(doc.name || '标签', c.toDataURL('image/png')).then(r => { if (r.ok) toast('PNG 已导出: ' + r.file); });
+    api.exportFile.png(doc.name || '标签', c.toDataURL('image/png')).then(r => {
+      addPrintLog('PNG导出', { record: records[0] || null, pages: 1, success: !!r.ok, error: r.error || '' });
+      if (r.ok) toast('PNG 已导出: ' + r.file);
+    });
   }
 };
 
@@ -3039,7 +3045,10 @@ $('#btnExportPdf').onclick = () => {
     pdf.addImage(c.toDataURL('image/png'), 'PNG', 0, 0, doc.width, doc.height);
   });
   const base64 = pdf.output('datauristring').split(',')[1];
-  api.exportFile.pdf(doc.name || '标签', base64).then(r => { if (r.ok) toast('PDF 已导出 (' + records.length + ' 页): ' + r.file); });
+  api.exportFile.pdf(doc.name || '标签', base64).then(r => {
+    addPrintLog('PDF导出', { record: records[0] || null, pages: records.length, success: !!r.ok, error: r.error || '' });
+    if (r.ok) toast('PDF 已导出 (' + records.length + ' 页): ' + r.file);
+  });
 };
 
 /* ================= 203DPI 1-bit rendering & print center =================
@@ -3388,6 +3397,128 @@ if ($('#printerSelect')) $('#printerSelect').addEventListener('change', () => {
   syncPaperFromPrinter(); refreshPrintPreview(); updatePaperHint();
 });
 
+/* ---------------- print log ---------------- */
+// Build a readable summary of what a label contains, with variable values
+// resolved against the first print record so the log shows actual content.
+/* ---------------- print log viewer ---------------- */
+let plEntries = [];
+function plBadge(type) {
+  const cls = type === '打印' ? 'print' : type === '测试页' ? 'test' : type === 'PDF导出' ? 'pdf' : 'png';
+  return `<span class="pl-badge ${cls}">${escapeHtml(type || '')}</span>`;
+}
+function fmtLogTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso || '');
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function renderPrintLogList() {
+  const body = $('#plBody'); if (!body) return;
+  body.innerHTML = plEntries.map(e => `
+    <tr>
+      <td>${fmtLogTime(e.time)}</td>
+      <td>${plBadge(e.type)}</td>
+      <td title="${escapeHtml(e.labelName || '')}">${escapeHtml(e.labelName || '')}</td>
+      <td><span class="pl-summary" title="${escapeHtml(e.summary || '')}">${escapeHtml(e.summary || '（无文字内容）')}</span></td>
+      <td><span class="pl-dir" title="${escapeHtml(e.filePath || '')}">${escapeHtml(e.fileDir || (e.filePath ? '（根目录）' : '（未关联文件）'))}</span></td>
+      <td>${e.copies || 1}</td>
+      <td>${e.success === false ? '<span class="pl-fail">失败</span>' : '<span class="pl-ok">成功</span>'}</td>
+    </tr>`).join('');
+  if ($('#plEmpty')) $('#plEmpty').hidden = plEntries.length > 0;
+  if ($('#plCount')) $('#plCount').textContent = '共 ' + plEntries.length + ' 条';
+}
+async function loadPrintLog() {
+  if (!api || !api.printLog || !api.printLog.list) return;
+  const filter = {
+    keyword: ($('#plKeyword').value || '').trim(),
+    type: $('#plType').value,
+    from: $('#plFrom').value,
+    to: $('#plTo').value,
+    limit: 300
+  };
+  const r = await api.printLog.list(filter);
+  if (r.ok) { plEntries = r.entries || []; renderPrintLogList(); }
+  else toast('读取打印记录失败' + (r.error ? ': ' + r.error : ''));
+}
+function openPrintLog() {
+  const m = $('#printLogModal'); if (!m) return;
+  m.hidden = false;
+  loadPrintLog();
+}
+function closePrintLog() { const m = $('#printLogModal'); if (m) m.hidden = true; }
+function bindPrintLog() {
+  if (!$('#printLogModal')) return;
+  if ($('#btnPrintLog')) $('#btnPrintLog').onclick = openPrintLog;
+  if ($('#plClose')) $('#plClose').onclick = closePrintLog;
+  if ($('#plDone')) $('#plDone').onclick = closePrintLog;
+  $('#printLogModal').addEventListener('click', (e) => { if (e.target.id === 'printLogModal') closePrintLog(); });
+  if ($('#plSearch')) $('#plSearch').onclick = loadPrintLog;
+  if ($('#plKeyword')) $('#plKeyword').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadPrintLog(); });
+  if ($('#plClear')) $('#plClear').onclick = async () => {
+    if (!window.confirm('确定清空全部打印记录？此操作不可撤销。')) return;
+    if (api && api.printLog && api.printLog.clear) { await api.printLog.clear(); plEntries = []; renderPrintLogList(); toast('打印记录已清空'); }
+  };
+  if ($('#plExport')) $('#plExport').onclick = () => {
+    if (!plEntries.length) { toast('没有可导出的记录'); return; }
+    const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const lines = ['时间,类型,标签名,打印内容,文件目录,文件路径,份数,页数,打印机,状态'];
+    for (const e of plEntries) lines.push([fmtLogTime(e.time), e.type, e.labelName, e.summary, e.fileDir, e.filePath, e.copies || 1, e.pages || 1, e.printer, e.success === false ? '失败' : '成功'].map(esc).join(','));
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '打印记录_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast('打印记录已导出 CSV');
+  };
+}
+
+// Build a readable summary of what a label contains, with variable values
+// resolved against the first print record so the log shows actual content.
+function buildPrintSummary(record) {
+  const parts = [];
+  for (const el of (doc.elements || [])) {
+    if (el.hidden) continue;
+    let v = null;
+    if (el.type === 'text') v = resolvedValue(el.text || '', record, !!record, el);
+    else if (el.type === 'barcode' || el.type === 'qrcode') v = resolvedValue(el.value || '', record, !!record, el);
+    else if (el.type === 'table' || el.type === 'excel') {
+      const cells = el.cells || {};
+      const cv = Object.keys(cells).sort().map(k => cells[k]).filter(Boolean);
+      if (cv.length) v = cv.join(' ');
+    }
+    if (v && String(v).trim()) parts.push(String(v).trim());
+  }
+  const s = parts.join(' | ');
+  return s.length > 500 ? s.slice(0, 500) + '…' : s;
+}
+function filePathInfo() {
+  const p = (currentFile && currentFile.path) || '';
+  if (!p) return { filePath: '', fileDir: '' };
+  const i = Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\'));
+  return { filePath: p, fileDir: i >= 0 ? p.slice(0, i) : '' };
+}
+async function addPrintLog(type, opts) {
+  if (!api || !api.printLog || !api.printLog.add) return;
+  try {
+    const o = opts || {};
+    const rec = o.record || null;
+    const fi = filePathInfo();
+    await api.printLog.add({
+      type,
+      labelName: doc.name || '未命名标签',
+      filePath: fi.filePath,
+      fileDir: fi.fileDir,
+      summary: buildPrintSummary(rec),
+      copies: o.copies || 1,
+      pages: o.pages || 1,
+      printer: o.printer || '',
+      success: o.success !== false,
+      error: o.error || ''
+    });
+  } catch (e) { console.warn('[printlog] add failed', e); }
+}
+
 async function doRawPrint(testPage) {
   const printerName = $('#printerSelect').value;
   if (!printerName) { toast('请先选择标签打印机'); return; }
@@ -3409,9 +3540,16 @@ async function doRawPrint(testPage) {
       density, copies: testPage ? 1 : copies, dark: false, bitmaps, paperMode, offsetDot,
       calibrate: testPage && paperMode === 'detect'
     });
+    await addPrintLog(testPage ? '测试页' : '打印', {
+      record: records[0] || null, copies: testPage ? 1 : copies, pages: bitmaps.length,
+      printer: printerName, success: !!r.ok, error: r.error || ''
+    });
     if (r.ok) toast((testPage ? '测试页' : '打印') + '已发送到 ' + printerName + ' (' + bitmaps.length + ' 张)');
     else toast('打印失败' + (r.error ? ': ' + r.error : ''));
-  } catch (e) { toast('打印失败: ' + e.message); }
+  } catch (e) {
+    await addPrintLog(testPage ? '测试页' : '打印', { record: records[0] || null, printer: printerName, success: false, error: e.message });
+    toast('打印失败: ' + e.message);
+  }
 }
 $('#btnPcPrint').onclick = () => doRawPrint(false);
 $('#btnPcTest').onclick = () => doRawPrint(true);
@@ -3540,6 +3678,7 @@ function init() {
   bindTableCtxMenu();
   bindIconLib();
   bindDbDialog();
+  bindPrintLog();
   // Defer the network check so it never delays first paint.
   setTimeout(checkForUpdate, 1200);
   // Start with NO document tab (no stray "未命名标签"). A blank working doc

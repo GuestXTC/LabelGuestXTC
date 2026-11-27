@@ -1,6 +1,6 @@
 {
   "name": "labelguestxtc",
-  "version": "4.7.1",
+  "version": "4.7.2",
   "description": "LabelGuestXTC - modern label designer with variable data, barcode tools and native TSPL printing (MIT).",
   "homepage": "https://gitee.com/GuestXTC/LabelGuestXTC",
   "main": "main.js",
@@ -31,6 +31,7 @@
       "main.js",
       "preload.js",
       "db-core.js",
+      "log-store.js",
       "src/**/*"
     ],
     "win": {

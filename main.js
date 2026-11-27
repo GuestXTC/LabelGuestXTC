@@ -510,6 +510,15 @@ ipcMain.handle('db:query', async (event, payload) => {
 ipcMain.handle('db:configs:load', async () => readDbConfigs());
 ipcMain.handle('db:configs:save', async (event, cfg) => writeDbConfigs(cfg));
 
+// ---- Print log ----------------------------------------------------------
+// Pure-JS store in log-store.js; main only wires IPC and supplies userData dir.
+const logStore = require('./log-store');
+const logDir = () => app.getPath('userData');
+
+ipcMain.handle('printlog:add', async (event, entry) => logStore.add(logDir(), entry));
+ipcMain.handle('printlog:list', async (event, filter) => logStore.list(logDir(), filter || {}));
+ipcMain.handle('printlog:clear', async () => logStore.clear(logDir()));
+
 // ---- Update check -------------------------------------------------------
 // Silently asks GitHub for the latest release. Never blocks startup: a short
 // timeout and swallowed errors keep the app fully offline-friendly.
