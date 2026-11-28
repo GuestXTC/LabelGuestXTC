@@ -3263,7 +3263,10 @@ function drawPrintPreview(bm, paper, record) {
     render(tc, doc, pxPerMm, { forExport: true, record: rec, batchEnabled: batchOn });
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(tmp, 0, 0, dw, dh, 0, 0, wpx, hpx);
+    // Draw into the UNROTATED paper rect (warpW×warpH); the rotation transform
+    // maps it onto the swapped canvas. Using wpx/hpx here would overshoot and
+    // clip the content on 90°/270°.
+    ctx.drawImage(tmp, 0, 0, dw, dh, 0, 0, warpW, warpH);
   }
   ctx.restore();
 
