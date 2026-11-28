@@ -1582,10 +1582,14 @@ function drawRulers() {
   c1.fillStyle = '#eef1f4'; c1.fillRect(0, 0, rhW, 22);
   c1.strokeStyle = '#8a95a5'; c1.fillStyle = '#5b6675'; c1.font = '9px Segoe UI';
   c1.textAlign = 'center'; c1.textBaseline = 'top';
-  // label left edge = canvas wrap left + editor pad (wrap includes margin)
+  // Align ruler zero with the canvas content origin (0mm). Use bounding rects
+  // rather than offsetLeft: the canvas is flex-centered inside canvas-scroll,
+  // so offsetParent-relative offsets drift and put the ticks in the wrong place.
   const wrap = $('#canvasWrap');
   const padPx = Math.round(EDITOR_PAD_MM * s);
-  const left = wrap ? wrap.offsetLeft + padPx - $('#canvasScroll').scrollLeft : 0;
+  const rhRect = $('#rulerH').getBoundingClientRect();
+  const wrapRect = wrap ? wrap.getBoundingClientRect() : null;
+  const left = wrapRect ? (wrapRect.left - rhRect.left) + padPx : 0;
   const step = s * 10; // every 10mm
   if (step > 6) {
     for (let mm = 0; mm <= doc.width + 10; mm += 10) {
@@ -1607,7 +1611,8 @@ function drawRulers() {
   c2.fillStyle = '#eef1f4'; c2.fillRect(0, 0, 22, rvH);
   c2.strokeStyle = '#8a95a5'; c2.fillStyle = '#5b6675'; c2.font = '9px Segoe UI';
   c2.textAlign = 'center'; c2.textBaseline = 'middle';
-  const top = wrap ? wrap.offsetTop + padPx - $('#canvasScroll').scrollTop : 0;
+  const rvRect = $('#rulerV').getBoundingClientRect();
+  const top = wrapRect ? (wrapRect.top - rvRect.top) + padPx : 0;
   if (step > 6) {
     for (let mm = 0; mm <= doc.height + 10; mm += 10) {
       const y = top + mm * s;
