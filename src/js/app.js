@@ -3202,8 +3202,8 @@ function drawPrintPreview(bm, paper, record) {
 
   // Render at a dense, fixed resolution for crisp text, then let CSS/zoom
   // display it. pxPerMm is independent of the 1-bit print raster.
-  const renderPpi = 300;                       // vector render resolution
-  const pxPerMm = renderPpi / 25.4;            // ~11.8 px/mm
+  const renderPpi = 400;                       // vector render resolution (crisp text)
+  const pxPerMm = renderPpi / 25.4;            // ~15.7 px/mm
   const wpx = Math.max(1, Math.round(paperW * pxPerMm));
   const hpx = Math.max(1, Math.round(paperH * pxPerMm));
   canvas.width = wpx; canvas.height = hpx;
@@ -3255,7 +3255,7 @@ function drawPrintPreview(bm, paper, record) {
 function applyPreviewZoom() {
   const canvas = $('#pcCanvas'); if (!canvas) return;
   const base = 3.0; // css px per mm at 100%
-  const w = (pcPreviewPaper ? pcPreviewPaper.widthMm : canvas.width / (300/25.4)) * base * pcZoom;
+  const w = (pcPreviewPaper ? pcPreviewPaper.widthMm : canvas.width / (400/25.4)) * base * pcZoom;
   canvas.style.width = Math.round(w) + 'px';
   canvas.style.height = 'auto';
   $('#pcZoomLabel').textContent = Math.round(pcZoom * 100) + '%';
