@@ -2365,9 +2365,8 @@ async function saveAsFlow() {
   toast('已另存为 ' + r.type.toUpperCase() + ': ' + r.file);
 }
 
-// "导入" shares the same content-based loader as "打开", so it accepts
-// both .ddl and .xtc and records the file path for overwrite-save.
-$('#btnImportJson').onclick = () => openDocument();
+// "导入" is the only path that reads .ddl; imported docs save as .xtc.
+$('#btnImportJson').onclick = () => importDocument();
 
 function applyDoc(newDoc, file) {
   openDocInTab(newDoc, file);
@@ -2703,7 +2702,7 @@ function promptOnOpenFields() {
   }, 120);
 }
 
-function loadFromOpenResult(r) {
+function loadFromOpenResult(r, isImport) {
   if (!r || !r.ok) { if (r && r.error) toast('打开失败：' + r.error); return; }
   try {
     const res = loadDocumentText(r.text != null ? r.text : r.xml, r.path);
@@ -2711,12 +2710,16 @@ function loadFromOpenResult(r) {
     // of the generic ".ddl import" placeholder set by parseDDL.
     const base = String(r.path || '').split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
     if (base) res.doc.name = base;
-    applyDoc(res.doc, { path: r.path, type: res.type });
+    // DDL is import-only: never keep it as the save target, otherwise Ctrl+S
+    // would try to overwrite the source .ddl. Imported docs save as .xtc.
+    const file = (res.type === 'ddl') ? null : { path: r.path, type: res.type };
+    applyDoc(res.doc, file);
     promptOnOpenFields();
     const n = res.doc.elements.length;
     const name = String(r.path || '').split(/[\\/]/).pop();
-    if (n) toast('已打开 ' + name + '：' + n + ' 个元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
-    else toast('文件已打开，但未识别到可编辑元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
+    const verb = isImport || res.type === 'ddl' ? '已导入' : '已打开';
+    if (n) toast(verb + ' ' + name + '：' + n + ' 个元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
+    else toast(verb + ' 文件，但未识别到可编辑元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
   } catch (e) {
     toast('打开失败：' + e.message);
     const ci = $('#cursorInfo'); if (ci) ci.textContent = '打开失败：' + e.message;
@@ -2734,6 +2737,19 @@ async function openDocument() {
     }
   } catch (e) { toast('打开失败：' + e.message); return; }
   loadFromOpenResult(r);
+}
+
+// Import is the ONLY way to bring a .ddl into the editor.
+async function importDocument() {
+  let r = null;
+  try {
+    if (api && api.file && api.file.importFile) r = await api.file.importFile();
+    else if (api && api.ddl && api.ddl.open) {
+      const d = await api.ddl.open();
+      if (d) r = Object.assign({}, d, { text: d.text != null ? d.text : d.xml });
+    }
+  } catch (e) { toast('导入失败：' + e.message); return; }
+  loadFromOpenResult(r, true);
 }
 
 $('#btnOpenDdl').onclick = () => openDocument();
@@ -3353,9 +3369,11 @@ async function refreshPrinters() {
 }
 
 /* ---------------- print center modal ---------------- */
+// Paper size follows the canvas, NOT the printer's display name. Deriving
+// dimensions from names like "100X70" broke as soon as a differently-named
+// printer was selected — labels must not be locked to specific hardware.
 function printerPaper(name) {
-  const m = String(name || '').match(/(\d+)\s*[xX×]\s*(\d+)/);
-  if (m) return { w: parseInt(m[1]), h: parseInt(m[2]) };
+  if (doc && doc.width > 0 && doc.height > 0) return { w: doc.width, h: doc.height };
   return { w: 50, h: 40 };
 }
 function syncPaperFromPrinter() {

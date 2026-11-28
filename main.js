@@ -159,16 +159,28 @@ ipcMain.handle('ddl:open', async () => {
   } catch (e) { return { ok: false, error: e.message }; }
 });
 
-// Unified open: accepts both .ddl (XML) and .xtc (our own format). The
-// renderer decides which parser to use based on the content, so "打开" and
-// "导入" can never diverge again.
+// "打开" only handles our native .xtc. DDL is import-only: use file:import.
 ipcMain.handle('file:open-any', async () => {
   const res = await dialog.showOpenDialog(mainWindow, {
     title: '打开标签文件',
     filters: [
-      { name: '标签文件 (*.xtc, *.ddl)', extensions: ['xtc', 'ddl'] },
       { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
+      { name: '所有文件', extensions: ['*'] }
+    ],
+    properties: ['openFile']
+  });
+  if (res.canceled || !res.filePaths.length) return { ok: false };
+  try { return { ok: true, path: res.filePaths[0], text: readLabelFile(res.filePaths[0]) }; }
+  catch (e) { return { ok: false, error: e.message }; }
+});
+
+// "导入" accepts a .ddl (or .xtc) and converts it into the current document.
+ipcMain.handle('file:import', async () => {
+  const res = await dialog.showOpenDialog(mainWindow, {
+    title: '导入标签文件',
+    filters: [
       { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] },
+      { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
       { name: '所有文件', extensions: ['*'] }
     ],
     properties: ['openFile']
@@ -197,17 +209,15 @@ ipcMain.handle('file:save-as', async (event, payload) => {
   const base = (payload.name || '标签').replace(/[\\/:*?"<>|]/g, '_');
   const res = await dialog.showSaveDialog(mainWindow, {
     title: '另存为',
-    defaultPath: base + '.' + (payload.defaultType === 'ddl' ? 'ddl' : 'xtc'),
+    defaultPath: base + '.xtc',
     filters: [
-      { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] },
-      { name: '.ddl 标签文件 (*.ddl)', extensions: ['ddl'] }
+      { name: 'LabelGuestXTC 标签文件 (*.xtc)', extensions: ['xtc'] }
     ]
   });
   if (res.canceled) return { ok: false };
-  const ext = path.extname(res.filePath).toLowerCase();
-  // .xtc is our native format. Any non-ddl extension maps to the native type.
-  const type = ext === '.ddl' ? 'ddl' : 'xtc';
-  const content = type === 'ddl' ? payload.ddlXml : JSON.stringify(payload.doc, null, 2);
+  // Native .xtc only — DDL is import-only by design.
+  const type = 'xtc';
+  const content = JSON.stringify(payload.doc, null, 2);
   try {
     fs.writeFileSync(res.filePath, content, 'utf8');
     return { ok: true, file: res.filePath, type };
@@ -605,7 +615,7 @@ ipcMain.handle('app:check-update', async () => {
 // These handlers let the user repair the association with one click, using
 // HKCU (per-user) registry writes so no administrator rights are needed.
 const ASSOC_PROGID = 'LabelGuestXTC File';
-const ASSOC_EXTS = ['xtc', 'ddl'];
+const ASSOC_EXTS = ['xtc']; // .ddl is import-only, never a double-click association
 
 function regQueryHKCU(subKey) {
   try {

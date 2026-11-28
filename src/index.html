@@ -95,7 +95,7 @@
     <section class="ribbon-panel active" data-panel="home">
       <div class="ribbon-group">
         <div class="ribbon-group-body">
-          <button class="ribbon-big" id="btnOpenDdl" title="打开标签文件 (.xtc / .ddl)"><svg class="i"><use href="#i-folder"/></svg><span>打开</span></button>
+          <button class="ribbon-big" id="btnOpenDdl" title="打开标签文件 (.xtc)"><svg class="i"><use href="#i-folder"/></svg><span>打开</span></button>
           <button class="ribbon-big primary" id="btnPrint" title="打印中心"><svg class="i"><use href="#i-print"/></svg><span>打印</span></button>
           <button class="ribbon-big" id="btnPrintLog" title="查看打印记录"><svg class="i"><use href="#i-history"/></svg><span>打印记录</span></button>
           <button class="ribbon-big" id="btnSave" title="保存 Ctrl+S"><svg class="i"><use href="#i-save"/></svg><span>保存</span></button>
@@ -103,7 +103,7 @@
           <button class="ribbon-big" id="redoBtn" title="重做 Ctrl+Y"><svg class="i"><use href="#i-redo"/></svg><span>重做</span></button>
           <div class="ribbon-stack">
             <button class="ribbon-small" id="btnSaveAs" title="另存为"><svg class="i"><use href="#i-saveas"/></svg>另存为</button>
-            <button class="ribbon-small" id="btnImportJson" title="导入标签文件"><svg class="i"><use href="#i-import"/></svg>导入</button>
+            <button class="ribbon-small" id="btnImportJson" title="导入 .ddl / .xtc（导入的 .ddl 保存为 .xtc）"><svg class="i"><use href="#i-import"/></svg>导入</button>
           </div>
         </div>
         <div class="ribbon-group-label">文件</div>
@@ -302,7 +302,7 @@
           <b>LabelGuestXTC</b>
           <span>现代标签设计与打印工作台 · 支持变量数据、条码、.ddl 标签文件导入与 TSPL 打印。</span>
           <div style="margin-top:8px">
-            <button class="ribbon-small" id="btnFixAssoc" title="双击 .xtc/.ddl 文件无法打开时点这里">修复文件关联</button>
+            <button class="ribbon-small" id="btnFixAssoc" title="双击 .xtc 文件无法打开时点这里">修复文件关联</button>
             <span id="assocTip" style="margin-left:8px;font-size:12px;color:#888"></span>
           </div>
         </div>
@@ -342,7 +342,7 @@
             <button id="weOpen" class="we-btn primary"><svg class="i"><use href="#i-folder"/></svg>打开标签</button>
             <button id="weNew" class="we-btn"><svg class="i"><use href="#i-plus"/></svg>新建标签</button>
           </div>
-          <div class="we-tip">也可以直接把 .xtc / .ddl 文件拖进窗口</div>
+          <div class="we-tip">也可以直接把 .xtc 文件拖进窗口；.ddl 请用「导入」</div>
         </div>
       </div>
     </div>
