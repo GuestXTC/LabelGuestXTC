@@ -117,16 +117,31 @@ const ctx = canvas.getContext('2d');
 
 // Editor-only workspace around the label. Overflowing elements are drawn here
 // in semi-transparent form so they stay visible/editable, but are never printed.
-// Kept generous so text placed outside the label always renders in full.
-const EDITOR_PAD_MM = 50;
+// Sized to the viewport ("100% full screen") on every render: every side gets
+// at least one full window of workspace, so text outside the label is visible.
+let EDITOR_PAD_MM = 50;
+const MIN_EDITOR_PAD_MM = 50;
 // Zoom fitting uses only the label plus a small margin, so enlarging the editor
 // workspace never shrinks the label itself on screen.
 const FIT_PAD_MM = 12;
 
 function scaleFactor() { return pxPerMmBase * zoom; }
 
+// Recompute the editor margin from the current viewport. The label keeps its
+// on-screen size because zoom uses FIT_PAD_MM, not this value.
+function computeEditorPad() {
+  const sc = $('#canvasScroll');
+  if (!sc || !doc || !sc.clientWidth || !sc.clientHeight) return MIN_EDITOR_PAD_MM;
+  const s = scaleFactor();
+  // One full viewport of workspace on each side ("100% 满屏"), never less than
+  // the minimum so tiny windows still leave room for overflowing elements.
+  return Math.max(MIN_EDITOR_PAD_MM,
+    Math.ceil(sc.clientWidth / s), Math.ceil(sc.clientHeight / s));
+}
+
 function resizeCanvas() {
   const s = scaleFactor();
+  EDITOR_PAD_MM = computeEditorPad();
   const pad = Math.round(EDITOR_PAD_MM * s);
   canvas.width = Math.round(doc.width * s) + pad * 2;
   canvas.height = Math.round(doc.height * s) + pad * 2;
