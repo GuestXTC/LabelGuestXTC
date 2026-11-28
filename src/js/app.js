@@ -58,7 +58,7 @@ function defaultElement(type) {
     case 'blackout':return Object.assign(base, { w: 30, h: 20, fill: '#000000', radius: 0 });
     case 'excel':   return Object.assign(base, { w: 60, h: 30, rows: 2, cols: 2, colRatios: [1,1], rowRatios: [1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111', dataSource: '' });
     case 'page':    return Object.assign(base, { type: 'text', name: '页码', contentType: 'page', text: '1', fontFamily: 'Microsoft YaHei', fontSize: 5, color: '#111111', align: 'center' });
-    case 'table':   return Object.assign(base, { w: 60, h: 24, rows: 3, cols: 3, colRatios: [1,1,1], rowRatios: [1,1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111', cellFill: 'transparent' });
+    case 'table':   return Object.assign(base, { w: 60, h: 24, rows: 3, cols: 3, colRatios: [1,1,1], rowRatios: [1,1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111' });
     case 'date':    return Object.assign(base, { type: 'text', name: '日期时间', dynamic: 'date', text: 'YYYY-MM-DD', w: 40, h: 10, fontFamily: 'Microsoft YaHei', fontSize: 5, color: '#111111', align: 'left', dateFormat: 'YYYY-MM-DD', dateUnit: 'day', dateStep: 0 });
     default:        return base;
   }
@@ -546,12 +546,6 @@ function bindIconLib() {
 function drawTable(c, el, opt) {
   const { xs, ys, cols, rows } = tableEdges(el);
   const merges = tableMerges(el);
-  // Cell background fill (whole table rect). Skipped when transparent/none.
-  const fill = el.cellFill;
-  if (fill && fill !== 'transparent' && fill !== 'none') {
-    c.fillStyle = fill;
-    c.fillRect(el.x, el.y, el.w, el.h);
-  }
   c.strokeStyle = el.borderColor || '#111111';
   c.lineWidth = el.borderWidth || 0.3;
   c.beginPath();
@@ -1844,8 +1838,6 @@ function refreshProps() {
     };
     mkNum('行数', 'rows', false); mkNum('列数', 'cols', false);
     p.appendChild(rg);
-    sec('填充');
-    addColorRow('填充', 'cellFill', el, p, commit, renderCanvas, true);
     sec('单元格文字');
     addText('字号 (mm)', 'cellFontSize', el.cellFontSize || 3, 'number');
     addSelect('字体', 'cellFontFamily', [['Microsoft YaHei', '微软雅黑'], ['SimHei', '黑体'], ['SimSun', '宋体'], ['Arial', 'Arial']]);
@@ -2698,7 +2690,7 @@ function parseDDL(xmlText) {
         colRatios: colW || new Array(cols).fill(1), rowRatios: rowH || new Array(rows).fill(1),
         merges,
         borderWidth: Math.max(0.1, num(m.tablelinewidth, 0.3)),
-        borderColor: '#111111', cellFill: '#ffffff',
+        borderColor: '#111111',
         fontFamily: 'Microsoft YaHei', fontSize: 3.5, color: '#111111', align: 'center'
       }));
     } else {
