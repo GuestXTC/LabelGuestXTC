@@ -2396,7 +2396,20 @@ function normalizeDoc(d) {
   d.width = Number(d.width) || 100;
   d.height = Number(d.height) || 60;
   d.elements = Array.isArray(d.elements) ? d.elements : [];
-  d.elements.forEach(e => { if (!e.id) e.id = uid(); });
+  d.elements.forEach(e => {
+    if (!e.id) e.id = uid();
+    // Older DDL imports stored table cells as a 2-D array (cells[r][c]).
+    // Every reader/writer uses the "r,c" string-key map, so convert here.
+    if (e.type === 'table' && Array.isArray(e.cells)) {
+      const map = {};
+      for (let r = 0; r < e.cells.length; r++) {
+        const row = e.cells[r];
+        if (!Array.isArray(row)) continue;
+        for (let c = 0; c < row.length; c++) if (row[c]) map[r + ',' + c] = row[c];
+      }
+      e.cells = map;
+    }
+  });
   return d;
 }
 
@@ -2672,8 +2685,16 @@ function parseDDL(xmlText) {
           }
         } catch (e) {}
       }
+      // Normalize cells to the string-key map ("r,c") used everywhere else.
+      // The parser above fills a 2-D array, but draw/edit/row-col ops all
+      // read cells["r,c"]; leaving it as an array makes inline editing blank.
+      const cellMap = {};
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const v = cells[r] && cells[r][c];
+        if (v) cellMap[r + ',' + c] = v;
+      }
       out.elements.push(Object.assign(common, {
-        type: 'table', name: '表格', rows, cols, cells,
+        type: 'table', name: '表格', rows, cols, cells: cellMap,
         colRatios: colW || new Array(cols).fill(1), rowRatios: rowH || new Array(rows).fill(1),
         merges,
         borderWidth: Math.max(0.1, num(m.tablelinewidth, 0.3)),
@@ -2705,7 +2726,7 @@ function loadDocumentText(text, filePath) {
     if (!d || typeof d !== 'object' || !Array.isArray(d.elements)) throw new Error('不是有效的标签文档');
     return { doc: normalizeDoc(d), type: 'xtc' };
   }
-  return { doc: parseDDL(s), type: 'ddl' };
+  return { doc: normalizeDoc(parseDDL(s)), type: 'ddl' };
 }
 
 // Prompt for values on elements marked "打开时输入" right after opening a doc.
