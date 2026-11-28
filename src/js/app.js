@@ -58,7 +58,7 @@ function defaultElement(type) {
     case 'blackout':return Object.assign(base, { w: 30, h: 20, fill: '#000000', radius: 0 });
     case 'excel':   return Object.assign(base, { w: 60, h: 30, rows: 2, cols: 2, colRatios: [1,1], rowRatios: [1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111', dataSource: '' });
     case 'page':    return Object.assign(base, { type: 'text', name: '页码', contentType: 'page', text: '1', fontFamily: 'Microsoft YaHei', fontSize: 5, color: '#111111', align: 'center' });
-    case 'table':   return Object.assign(base, { w: 60, h: 24, rows: 3, cols: 3, colRatios: [1,1,1], rowRatios: [1,1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111' });
+    case 'table':   return Object.assign(base, { w: 60, h: 24, rows: 3, cols: 3, colRatios: [1,1,1], rowRatios: [1,1,1], borderWidth: 0.3, borderColor: '#111111', merges: [], cells: {}, cellFontSize: 3, cellFontFamily: 'Microsoft YaHei', cellColor: '#111111', cellFill: 'transparent' });
     case 'date':    return Object.assign(base, { type: 'text', name: '日期时间', dynamic: 'date', text: 'YYYY-MM-DD', w: 40, h: 10, fontFamily: 'Microsoft YaHei', fontSize: 5, color: '#111111', align: 'left', dateFormat: 'YYYY-MM-DD', dateUnit: 'day', dateStep: 0 });
     default:        return base;
   }
@@ -546,6 +546,12 @@ function bindIconLib() {
 function drawTable(c, el, opt) {
   const { xs, ys, cols, rows } = tableEdges(el);
   const merges = tableMerges(el);
+  // Cell background fill (whole table rect). Skipped when transparent/none.
+  const fill = el.cellFill;
+  if (fill && fill !== 'transparent' && fill !== 'none') {
+    c.fillStyle = fill;
+    c.fillRect(el.x, el.y, el.w, el.h);
+  }
   c.strokeStyle = el.borderColor || '#111111';
   c.lineWidth = el.borderWidth || 0.3;
   c.beginPath();
@@ -1832,6 +1838,8 @@ function refreshProps() {
     };
     mkNum('行数', 'rows', false); mkNum('列数', 'cols', false);
     p.appendChild(rg);
+    sec('填充');
+    addColorRow('填充', 'cellFill', el, p, commit, renderCanvas, true);
     sec('单元格文字');
     addText('字号 (mm)', 'cellFontSize', el.cellFontSize || 3, 'number');
     addSelect('字体', 'cellFontFamily', [['Microsoft YaHei', '微软雅黑'], ['SimHei', '黑体'], ['SimSun', '宋体'], ['Arial', 'Arial']]);
@@ -3037,13 +3045,38 @@ function formatDate(fmt) {
 }
 
 /* ---------------- render to offscreen (for export/print) ---------------- */
-function renderToCanvas(record, dpi) {
+function renderToCanvas(record, dpi, corrections) {
   const scale = dpi / MM;
+  const corr = corrections || null;
+  const quarter = corr && (corr.rotate === 90 || corr.rotate === 270);
+  const cw = Math.round(doc.width * scale);
+  const ch = Math.round(doc.height * scale);
+  // render() resets the transform internally, so draw the design into an
+  // offscreen canvas first, then apply rotation/mirror in the final blit.
+  const base = document.createElement('canvas');
+  base.width = cw; base.height = ch;
+  const bc = base.getContext('2d');
+  render(bc, doc, scale, { forExport: true, record, batchEnabled: !!record });
+
   const c = document.createElement('canvas');
-  c.width = Math.round(doc.width * scale);
-  c.height = Math.round(doc.height * scale);
+  c.width = quarter ? ch : cw;
+  c.height = quarter ? cw : ch;
   const cc = c.getContext('2d');
-  render(cc, doc, scale, { forExport: true, record, batchEnabled: !!record });
+  cc.fillStyle = '#ffffff'; cc.fillRect(0, 0, c.width, c.height);
+  cc.save();
+  if (corr) {
+    if (corr.rotate === 180) { cc.translate(c.width, c.height); cc.rotate(Math.PI); }
+    else if (quarter) {
+      cc.translate(c.width / 2, c.height / 2);
+      cc.rotate(corr.rotate * Math.PI / 180);
+      cc.translate(-cw / 2, -ch / 2);
+    }
+    if (corr.mirror) { cc.translate(c.width, 0); cc.scale(-1, 1); }
+  }
+  cc.imageSmoothingEnabled = true;
+  cc.imageSmoothingQuality = 'high';
+  cc.drawImage(base, 0, 0);
+  cc.restore();
   return c;
 }
 
@@ -3192,6 +3225,13 @@ function applyCorrections(bm, opts) {
         if (opts.rotate === 90) setBit(out, height - 1 - y, x, getBit(x, y));
         else setBit(out, y, width - 1 - x, getBit(x, y));
       }
+    }
+    // Zero the per-row padding bits (newWB*8 may exceed `height`), otherwise
+    // they stay black (bit 0) and print as vertical stripes.
+    const padBits = newWB * 8 - height;
+    if (padBits > 0) {
+      const padMask = (0xff << padBits) & 0xff;
+      for (let y = 0; y < out.length; y += newWB) out[y + newWB - 1] |= ~padMask & 0xff;
     }
     return { widthBytes: newWB, height: width, data: out };
   }
@@ -3615,16 +3655,24 @@ async function doRawPrint(testPage) {
     try {
       const recs = testPage ? [null] : buildRecords();
       const copies = Math.max(1, parseInt($('#printCopies').value) || 1);
+      const corr = printCorrections();
       const imgs = [];
       for (const rec of recs) {
-        const c = renderToCanvas(rec, 300);
+        const c = renderToCanvas(rec, 300, corr);
         imgs.push(c.toDataURL('image/png'));
       }
-      const r = await api.print.labels({ dataUrls: imgs, widthMm: doc.width, heightMm: doc.height, silent: false });
+      // print:labels emits one page per data URL, so duplicate the set to
+      // honour the copy count (otherwise copies is silently ignored).
+      const all = [];
+      for (let i = 0; i < copies; i++) all.push(...imgs);
+      const quarter = corr.rotate === 90 || corr.rotate === 270;
+      const outW = quarter ? doc.height : doc.width;
+      const outH = quarter ? doc.width : doc.height;
+      const r = await api.print.labels({ dataUrls: all, widthMm: outW, heightMm: outH, silent: false });
       await addPrintLog(testPage ? '测试页' : '系统打印', {
-        record: recs[0] || null, copies, pages: imgs.length, printer: printerName, success: !!r.ok, error: r.error || ''
+        record: recs[0] || null, copies, pages: all.length, printer: printerName, success: !!r.ok, error: r.error || ''
       });
-      if (r.ok) toast('已发送到系统打印 (' + imgs.length + ' 张)');
+      if (r.ok) toast('已发送到系统打印 (' + all.length + ' 张)');
       else toast('打印失败' + (r.error ? ': ' + r.error : ''));
     } catch (e) {
       await addPrintLog('系统打印', { printer: printerName, success: false, error: e.message });
