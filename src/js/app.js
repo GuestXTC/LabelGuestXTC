@@ -151,11 +151,14 @@ function render(ctx2, targetDoc, scale, opts = {}) {
     ctx2.rect(0, 0, targetDoc.width, targetDoc.height);
     ctx2.clip();
   } else {
-    // Editor: draw a soft "outside the page" backdrop, then the white page.
-    ctx2.fillStyle = '#eef1f6';
+    // Editor: the whole workspace reads as one continuous paper surface.
+    // The overflow margin uses the same paper colour so no grey band shows
+    // between the label and the surrounding workspace.
+    const paper = targetDoc.background || '#ffffff';
+    ctx2.fillStyle = paper;
     ctx2.fillRect(-EDITOR_PAD_MM, -EDITOR_PAD_MM,
       targetDoc.width + EDITOR_PAD_MM * 2, targetDoc.height + EDITOR_PAD_MM * 2);
-    ctx2.fillStyle = targetDoc.background || '#ffffff';
+    ctx2.fillStyle = paper;
     ctx2.fillRect(0, 0, targetDoc.width, targetDoc.height);
   }
 
