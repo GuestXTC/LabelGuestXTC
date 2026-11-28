@@ -1200,25 +1200,27 @@ function closeInlineEdit(save) {
 }
 canvas.addEventListener('dblclick', (ev) => {
   const p = eventToMm(ev);
-  // Table cell: edit its text content inline.
-  for (let i = doc.elements.length - 1; i >= 0; i--) {
-    const t = doc.elements[i];
-    if (t.hidden || t.type !== 'table') continue;
-    const cx = t.x + t.w / 2, cy = t.y + t.h / 2;
-    const a = -(t.rotation || 0) * Math.PI / 180;
-    const ddx = p.x - cx, ddy = p.y - cy;
-    const lp = { x: cx + ddx * Math.cos(a) - ddy * Math.sin(a), y: cy + ddx * Math.sin(a) + ddy * Math.cos(a) };
-    const cell = pointToCell(t, lp);
-    if (!cell) continue;
-    ev.preventDefault();
-    selectOnly(t.id);
-    editTableCell(t, cell.r, cell.c);
-    refreshSelectionUI();
-    return;
-  }
+  // Walk top-most first (array end = top layer) so text sitting above a
+  // table is edited instead of the table cell underneath it. Tables are
+  // force-placed at the bottom of the array, so they are only reached when
+  // nothing else was hit first.
   for (let i = doc.elements.length - 1; i >= 0; i--) {
     const e = doc.elements[i];
-    if (!e.hidden && pointInElement(e, p) && editableKey(e)) {
+    if (e.hidden) continue;
+    if (e.type === 'table') {
+      const cx = e.x + e.w / 2, cy = e.y + e.h / 2;
+      const a = -(e.rotation || 0) * Math.PI / 180;
+      const ddx = p.x - cx, ddy = p.y - cy;
+      const lp = { x: cx + ddx * Math.cos(a) - ddy * Math.sin(a), y: cy + ddx * Math.sin(a) + ddy * Math.cos(a) };
+      const cell = pointToCell(e, lp);
+      if (!cell) continue;
+      ev.preventDefault();
+      selectOnly(e.id);
+      editTableCell(e, cell.r, cell.c);
+      refreshSelectionUI();
+      return;
+    }
+    if (pointInElement(e, p) && editableKey(e)) {
       ev.preventDefault();
       selectOnly(e.id);
       beginInlineEdit(e);
