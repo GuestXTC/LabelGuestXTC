@@ -368,7 +368,11 @@ function showCellMergeBar() {
   const bar = document.createElement('div');
   bar.className = 'cell-merge-bar';
   const rows = rect.rB - rect.rA + 1, cols = rect.cB - rect.cA + 1;
-  const centerX = (rect.x0 + rect.x1) / 2 * s, topY = rect.y0 * s;
+  // The bar is absolutely positioned inside #canvasWrap, whose canvas is drawn
+  // with an EDITOR_PAD_MM margin offset. Add the same pad as the inline editor
+  // so the bar sits above the selected cells instead of at the canvas corner.
+  const centerX = ((rect.x0 + rect.x1) / 2 + EDITOR_PAD_MM) * s;
+  const topY = (rect.y0 + EDITOR_PAD_MM) * s;
   bar.style.left = centerX + 'px';
   bar.style.top = Math.max(0, topY - 44) + 'px';
   bar.innerHTML = `<span>${rows}×${cols}</span>`;
@@ -653,12 +657,19 @@ function computeDynamicDate(el) {
   return String(fmt).replace(/YYYY|YY|MM|DD|HH|mm|SS/g, k => map[k] || k);
 }
 
-// True when a text element's center lies inside any blackout background —
-// such text must be drawn white so it stays legible on the black region.
+// True when a point lies inside any blackout background. Text drawn over a
+// black region must be white to stay legible. Check the ACTUAL glyph position
+// (not the element box centre): a text box may straddle the top edge of a
+// blackout, and using the centre wrongly turns glyphs above the block white,
+// making them vanish against the white page.
+function pointOnBlackout(x, y) {
+  return (doc.elements || []).some(b => b.type === 'blackout' && !b.hidden &&
+    x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+}
+// Kept for callers that only have the element; checks the glyph centre row.
 function textOnBlackout(el) {
   const cx = el.x + el.w / 2, cy = el.y + el.h / 2;
-  return (doc.elements || []).some(b => b.type === 'blackout' && !b.hidden &&
-    cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h);
+  return pointOnBlackout(cx, cy);
 }
 
 function drawText(c, el, opt) {
@@ -666,7 +677,6 @@ function drawText(c, el, opt) {
   if (el.dynamic === 'date' || el.dynamic === 'time') text = computeDynamicDate(el);
   else if (el.contentType === 'serial' && opt.record) text = opt.record.__serial != null ? String(opt.record.__serial) : (el.text || '');
   else if ((el.contentType === 'date' || el.contentType === 'time') && !el.dynamic) text = computeDynamicDate(el);
-  const autoInverse = !el.inverse && textOnBlackout(el);
   const size = fontPx(el);
   // Quote ONLY the family name; sans-serif must be a separate fallback token.
   // Wrapping "微软雅黑, sans-serif" in one pair of quotes makes an invalid
@@ -707,11 +717,23 @@ function drawText(c, el, opt) {
     const anchor = align === 'center' ? el.x + el.w / 2 : align === 'right' ? el.x + el.w : el.x;
     const left = align === 'center' ? anchor - drawnW / 2 : align === 'right' ? anchor - drawnW : anchor;
 
-    if (el.inverse && !autoInverse) {
+    // Decide inverse PER LINE from where the glyphs actually land. A text box
+    // can overlap a blackout only partially; using the element centre here
+    // used to paint glyphs above the block white and they disappeared on the
+    // white page. Sample a few points across the rendered glyph run.
+    let autoInverseRow = false;
+    if (!el.inverse && drawnW > 0) {
+      const samples = Math.min(12, Math.max(2, chars.length));
+      for (let si = 0; si < samples; si++) {
+        const sx = left + drawnW * (si / (samples - 1));
+        if (pointOnBlackout(sx, y)) { autoInverseRow = true; break; }
+      }
+    }
+    if (el.inverse && !autoInverseRow) {
       c.fillStyle = color;
       c.fillRect(left, y - size * 0.6, drawnW, size * 1.2);
     }
-    c.fillStyle = (el.inverse || autoInverse) ? '#ffffff' : color;
+    c.fillStyle = (el.inverse || autoInverseRow) ? '#ffffff' : color;
 
     if (chars.length > 1 && (gap > 0 || ls > 0)) {
       let cx = left;
@@ -2683,6 +2705,7 @@ function parseDDL(xmlText) {
         fontSize: round(Math.max(2, m.fontsizemm ? num(m.fontsizemm, 5) : num(m.fontsize, 10) * 0.35)),
         bold: m.fontbold === 'true', italic: m.fontitalic === 'true',
         underline: m.fontunderline === 'true', strike: m.fontstrikeout === 'true',
+        inverse: String(m.blackground || '') === 'true',
         color: m.fontcolor || '#111111', align: alignMap[m.alignment] || 'left'
       }));
     } else if (it === '8') {
