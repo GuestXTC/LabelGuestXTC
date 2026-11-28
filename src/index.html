@@ -414,6 +414,12 @@
             <span class="pc-inline"><select id="printerSelect"><option value="">（未选择）</option></select>
             <button id="btnRefreshPrinters" class="mini-btn" title="刷新列表"><svg class="i"><use href="#i-refresh"/></svg></button></span>
           </label>
+          <label class="pc-row"><span>打印方式</span>
+            <select id="printMode">
+              <option value="tspl">标签机直发 (TSPL)</option>
+              <option value="system">系统打印 (任意打印机)</option>
+            </select>
+          </label>
           <label class="pc-row"><span>纸张尺寸</span><span class="pc-inline pc-paper">
             <input id="printGapW" type="number" value="50" step="1" /><em>×</em>
             <input id="printGapH" type="number" value="40" step="1" /><em>mm</em>
@@ -513,7 +519,7 @@
     </div>
     <div class="pl-filters">
       <input id="plKeyword" type="text" placeholder="搜索标签名 / 内容 / 目录…" />
-      <select id="plType"><option value="">全部类型</option><option value="打印">打印</option><option value="测试页">测试页</option><option value="PDF导出">PDF导出</option><option value="PNG导出">PNG导出</option></select>
+      <select id="plType"><option value="">全部类型</option><option value="打印">标签机直发</option><option value="系统打印">系统打印</option><option value="测试页">测试页</option><option value="PDF导出">PDF导出</option><option value="PNG导出">PNG导出</option></select>
       <label>从 <input id="plFrom" type="date" /></label>
       <label>到 <input id="plTo" type="date" /></label>
       <button id="plSearch" class="tb-btn">查询</button>

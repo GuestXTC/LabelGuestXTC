@@ -3373,8 +3373,17 @@ async function refreshPrinters() {
         o.textContent = p.displayName + (p.isDefault ? ' (默认)' : '');
         sel.appendChild(o);
       });
-      const thermal = r.printers.find(p => /50X40|100X70|QR-588|LABEL/i.test(p.name + p.displayName));
+      // Prefer a thermal label printer when present; otherwise use the system
+      // default. Auto-pick the matching print mode for the selected printer.
+      const thermal = r.printers.find(p => /50X40|100X70|QR-588|LABEL|TSC|Xprinter/i.test(p.name + p.displayName));
       if (thermal) sel.value = thermal.name;
+      else if (r.printers.length) sel.value = (r.printers.find(p => p.isDefault) || r.printers[0]).name;
+      const pm = $('#printMode');
+      if (pm) {
+        const chosen = r.printers.find(p => p.name === sel.value);
+        const isThermal = chosen && /50X40|100X70|QR-588|LABEL|TSC|Xprinter/i.test(chosen.name + chosen.displayName);
+        pm.value = isThermal ? 'tspl' : 'system';
+      }
       printersLoaded = true;
     }
   } catch (e) { sel.innerHTML = '<option value="">无法读取打印机</option>'; }
@@ -3481,6 +3490,12 @@ if ($('#printSyncPaper')) $('#printSyncPaper').addEventListener('change', () => 
   syncPaperFromPrinter(); refreshPrintPreview(); updatePaperHint();
 });
 if ($('#printerSelect')) $('#printerSelect').addEventListener('change', () => {
+  const name = $('#printerSelect').value;
+  const pm = $('#printMode');
+  if (pm) {
+    const isThermal = /50X40|100X70|QR-588|LABEL|TSC|Xprinter/i.test(name);
+    pm.value = isThermal ? 'tspl' : 'system';
+  }
   syncPaperFromPrinter(); refreshPrintPreview(); updatePaperHint();
 });
 
@@ -3490,7 +3505,7 @@ if ($('#printerSelect')) $('#printerSelect').addEventListener('change', () => {
 /* ---------------- print log viewer ---------------- */
 let plEntries = [];
 function plBadge(type) {
-  const cls = type === '打印' ? 'print' : type === '测试页' ? 'test' : type === 'PDF导出' ? 'pdf' : 'png';
+  const cls = type === '打印' ? 'print' : type === '系统打印' ? 'print' : type === '测试页' ? 'test' : type === 'PDF导出' ? 'pdf' : 'png';
   return `<span class="pl-badge ${cls}">${escapeHtml(type || '')}</span>`;
 }
 function fmtLogTime(iso) {
@@ -3609,6 +3624,30 @@ async function addPrintLog(type, opts) {
 async function doRawPrint(testPage) {
   const printerName = $('#printerSelect').value;
   if (!printerName) { toast('请先选择标签打印机'); return; }
+  const mode = ($('#printMode') && $('#printMode').value) || 'tspl';
+  // System print: works with ANY printer (HP/Canon/Epson/virtual PDF...),
+  // bypasses TSPL entirely. Use the same 300-DPI canvas as PNG export.
+  if (mode === 'system') {
+    try {
+      const recs = testPage ? [null] : buildRecords();
+      const copies = Math.max(1, parseInt($('#printCopies').value) || 1);
+      const imgs = [];
+      for (const rec of recs) {
+        const c = renderToCanvas(rec, 300);
+        imgs.push(c.toDataURL('image/png'));
+      }
+      const r = await api.print.labels({ dataUrls: imgs, widthMm: doc.width, heightMm: doc.height, silent: false });
+      await addPrintLog(testPage ? '测试页' : '系统打印', {
+        record: recs[0] || null, copies, pages: imgs.length, printer: printerName, success: !!r.ok, error: r.error || ''
+      });
+      if (r.ok) toast('已发送到系统打印 (' + imgs.length + ' 张)');
+      else toast('打印失败' + (r.error ? ': ' + r.error : ''));
+    } catch (e) {
+      await addPrintLog('系统打印', { printer: printerName, success: false, error: e.message });
+      toast('打印失败: ' + e.message);
+    }
+    return;
+  }
   let paper = printPaper();
   const copies = Math.max(1, parseInt($('#printCopies').value) || 1);
   const density = Math.max(0, Math.min(15, parseInt($('#printDensity').value) || 8));
