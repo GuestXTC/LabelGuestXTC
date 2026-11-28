@@ -98,11 +98,11 @@ button{cursor:pointer;color:inherit}
 .ruler-corner{grid-column:1;grid-row:1;background:#eef1f6;border-right:1px solid #d3dae4;border-bottom:1px solid #d3dae4}
 .ruler-h{grid-column:2;grid-row:1;background:#eef1f6;border-bottom:1px solid #d3dae4;overflow:hidden}
 .ruler-v{grid-column:1;grid-row:2;background:#eef1f6;border-right:1px solid #d3dae4;overflow:hidden}
-.canvas-scroll{grid-column:2;grid-row:2;overflow:hidden;padding:26px;display:flex;align-items:center;justify-content:center;
+.canvas-scroll{grid-column:2;grid-row:2;overflow:auto;padding:26px;display:flex;
   background-color:#e5e9ee;
   background-image:linear-gradient(45deg,#dce1e8 25%,transparent 25%,transparent 75%,#dce1e8 75%),linear-gradient(45deg,#dce1e8 25%,transparent 25%,transparent 75%,#dce1e8 75%);
   background-size:22px 22px;background-position:0 0,11px 11px}
-.canvas-wrap{position:relative;background:#fff;box-shadow:0 10px 34px rgba(24,42,78,.20),0 0 0 1px rgba(24,42,78,.06);flex:0 0 auto;border-radius:2px}
+.canvas-wrap{position:relative;background:#fff;box-shadow:0 10px 34px rgba(24,42,78,.20),0 0 0 1px rgba(24,42,78,.06);flex:0 0 auto;margin:auto;border-radius:2px}
 #labelCanvas{display:block;cursor:crosshair}
 .stage-status{grid-column:1/3;grid-row:3;display:flex;align-items:center;gap:10px;padding:0 12px;background:#f5f7fa;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .status-sep{color:#ccd4df}
@@ -623,9 +623,8 @@ body{font-size:14px;color:var(--lw-ink);-webkit-font-smoothing:antialiased}
 
 /* ---- stage / canvas: clean workspace ---- */
 .stage{background:var(--lw-bg)}
-/* workspace fills edge-to-edge with the paper; no grey margin around the label */
-.canvas-scroll{background-color:#ffffff;background-image:none;padding:0}
-.canvas-wrap{box-shadow:none;border-radius:0}
+.canvas-scroll{background-color:#eef1f6;background-image:none}
+.canvas-wrap{box-shadow:0 10px 34px rgba(16,32,64,.18);border-radius:3px}
 .stage-status{background:var(--lw-panel);border-top:1px solid var(--lw-line);font-size:12.5px;color:var(--lw-ink2)}
 #cursorInfo{color:var(--lw-accent)}
 

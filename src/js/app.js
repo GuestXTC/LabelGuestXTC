@@ -115,9 +115,13 @@ function redo() { if (hi < history.length - 1) { hi++; restore(); } }
 const canvas = $('#labelCanvas');
 const ctx = canvas.getContext('2d');
 
-// Editor-only margin around the label. Overflowing elements are drawn here in
-// semi-transparent form so they stay visible/editable, but are never printed.
-const EDITOR_PAD_MM = 12;
+// Editor-only workspace around the label. Overflowing elements are drawn here
+// in semi-transparent form so they stay visible/editable, but are never printed.
+// Kept generous so text placed outside the label always renders in full.
+const EDITOR_PAD_MM = 50;
+// Zoom fitting uses only the label plus a small margin, so enlarging the editor
+// workspace never shrinks the label itself on screen.
+const FIT_PAD_MM = 12;
 
 function scaleFactor() { return pxPerMmBase * zoom; }
 
@@ -151,14 +155,11 @@ function render(ctx2, targetDoc, scale, opts = {}) {
     ctx2.rect(0, 0, targetDoc.width, targetDoc.height);
     ctx2.clip();
   } else {
-    // Editor: the whole workspace reads as one continuous paper surface.
-    // The overflow margin uses the same paper colour so no grey band shows
-    // between the label and the surrounding workspace.
-    const paper = targetDoc.background || '#ffffff';
-    ctx2.fillStyle = paper;
+    // Editor: draw a soft "outside the page" backdrop, then the white page.
+    ctx2.fillStyle = '#eef1f6';
     ctx2.fillRect(-EDITOR_PAD_MM, -EDITOR_PAD_MM,
       targetDoc.width + EDITOR_PAD_MM * 2, targetDoc.height + EDITOR_PAD_MM * 2);
-    ctx2.fillStyle = paper;
+    ctx2.fillStyle = targetDoc.background || '#ffffff';
     ctx2.fillRect(0, 0, targetDoc.width, targetDoc.height);
   }
 
@@ -2111,15 +2112,26 @@ function maxFitZoom() {
   if (!sc || !doc) return 4;
   const availW = Math.max(120, sc.clientWidth - 60);
   const availH = Math.max(120, sc.clientHeight - 60);
-  const baseW = (doc.width + EDITOR_PAD_MM * 2) * pxPerMmBase;
-  const baseH = (doc.height + EDITOR_PAD_MM * 2) * pxPerMmBase;
+  const baseW = (doc.width + FIT_PAD_MM * 2) * pxPerMmBase;
+  const baseH = (doc.height + FIT_PAD_MM * 2) * pxPerMmBase;
   return Math.max(0.2, Math.min(availW / baseW, availH / baseH));
 }
 function setZoom(z) {
-  // Upper bound is the fit size, so no scrollbar / dragging is ever needed.
   zoom = Math.max(0.2, Math.min(maxFitZoom(), z));
   $('#zoomLabel').textContent = Math.round(zoom * 100) + '%';
   renderCanvas();
+  centerLabelInView();
+}
+// The editor workspace is larger than the label so overflowing elements can be
+// seen; keep the label itself centred in the viewport on load / zoom / resize.
+function centerLabelInView() {
+  const sc = $('#canvasScroll');
+  if (!sc || !doc) return;
+  const s = scaleFactor();
+  const padPx = Math.round(EDITOR_PAD_MM * s);
+  sc.scrollLeft = Math.max(0, padPx + doc.width * s / 2 - sc.clientWidth / 2);
+  sc.scrollTop = Math.max(0, padPx + doc.height * s / 2 - sc.clientHeight / 2);
+  drawRulers();
 }
 $('#zoomIn').onclick = () => setZoom(zoom * 1.25);
 $('#zoomOut').onclick = () => setZoom(zoom / 1.25);
