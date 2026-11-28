@@ -623,7 +623,7 @@ body{font-size:14px;color:var(--lw-ink);-webkit-font-smoothing:antialiased}
 
 /* ---- stage / canvas: clean workspace ---- */
 .stage{background:var(--lw-bg)}
-.canvas-scroll{background-color:#eef1f6;background-image:radial-gradient(circle at 1px 1px,#d9dfe8 1px,transparent 0);background-size:20px 20px}
+.canvas-scroll{background-color:#eef1f6;background-image:none}
 .canvas-wrap{box-shadow:0 10px 34px rgba(16,32,64,.18);border-radius:3px}
 .stage-status{background:var(--lw-panel);border-top:1px solid var(--lw-line);font-size:12.5px;color:var(--lw-ink2)}
 #cursorInfo{color:var(--lw-accent)}
