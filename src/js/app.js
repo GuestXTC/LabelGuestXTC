@@ -3171,6 +3171,24 @@ function applyCorrections(bm, opts) {
       }
     }
     data = out;
+  } else if (opts.rotate === 90 || opts.rotate === 270) {
+    // Transpose the 1-bit buffer: width (dots) and height swap. Bit 0 = black.
+    const width = widthBytes * 8;
+    const newWB = Math.ceil(height / 8);
+    const out = new Uint8Array(newWB * width);
+    const getBit = (x, y) => (data[y * widthBytes + (x >> 3)] >> (7 - (x & 7))) & 1;
+    const setBit = (buf, x, y, v) => {
+      const idx = y * newWB + (x >> 3);
+      if (v) buf[idx] |= (1 << (7 - (x & 7)));
+      else buf[idx] &= ~(1 << (7 - (x & 7)));
+    };
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (opts.rotate === 90) setBit(out, height - 1 - y, x, getBit(x, y));
+        else setBit(out, y, width - 1 - x, getBit(x, y));
+      }
+    }
+    return { widthBytes: newWB, height: width, data: out };
   }
   return { widthBytes, height, data };
 }
@@ -3204,20 +3222,28 @@ function drawPrintPreview(bm, paper, record) {
   // display it. pxPerMm is independent of the 1-bit print raster.
   const renderPpi = 400;                       // vector render resolution (crisp text)
   const pxPerMm = renderPpi / 25.4;            // ~15.7 px/mm
-  const wpx = Math.max(1, Math.round(paperW * pxPerMm));
-  const hpx = Math.max(1, Math.round(paperH * pxPerMm));
+  const warpW = Math.max(1, Math.round(paperW * pxPerMm));
+  const warpH = Math.max(1, Math.round(paperH * pxPerMm));
+  const corr = printCorrections();
+  const quarter = corr.rotate === 90 || corr.rotate === 270;
+  // A 90°/270° print turns the label on its side: the visible canvas swaps
+  // width and height, otherwise the rotated content lands outside the bitmap
+  // and the preview appears blank.
+  const wpx = quarter ? warpH : warpW;
+  const hpx = quarter ? warpW : warpH;
   canvas.width = wpx; canvas.height = hpx;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, wpx, hpx);
 
-  // Apply print corrections (mirror / 180° / invert) around the paper center.
-  const corr = printCorrections();
+  // Apply print corrections (rotation / mirror) around the paper center.
   ctx.save();
   if (corr.rotate === 180) { ctx.translate(wpx, hpx); ctx.rotate(Math.PI); }
-  else if (corr.rotate === 90 || corr.rotate === 270) {
-    // 90°: rotate design around paper center; preview canvas swaps dimensions.
-    const cx = paperW * pxPerMm / 2, cy = paperH * pxPerMm / 2;
-    ctx.translate(cx, cy); ctx.rotate(corr.rotate * Math.PI / 180); ctx.translate(-cy, cx);
+  else if (quarter) {
+    const cx = wpx / 2, cy = hpx / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate(corr.rotate * Math.PI / 180);
+    // Center the unrotated content on the rotated canvas.
+    ctx.translate(-warpW / 2, -warpH / 2);
   }
   if (corr.mirror) { ctx.translate(wpx, 0); ctx.scale(-1, 1); }
 
@@ -3247,8 +3273,12 @@ function drawPrintPreview(bm, paper, record) {
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, wpx, hpx);
     ctx.restore();
   }
+  // Keep the zoom aspect ratio in sync with the (possibly swapped) canvas.
+  pcPreviewPaper = quarter
+    ? { widthMm: paperH, heightMm: paperW }
+    : { widthMm: paperW, heightMm: paperH };
   applyPreviewZoom();
-  $('#pcPreviewInfo').textContent = `矢量预览 · ${paperW}×${paperH}mm · @${renderPpi}DPI`;
+  $('#pcPreviewInfo').textContent = `矢量预览 · ${pcPreviewPaper.widthMm}×${pcPreviewPaper.heightMm}mm · @${renderPpi}DPI`;
 }
 // Display size of the preview. Canvas stays at high fixed resolution; only
 // CSS size changes, so text remains crisp at every zoom level.
@@ -3404,7 +3434,6 @@ function setPrintDirection(deg) {
 document.querySelectorAll('.pc-dir').forEach(b => {
   b.onclick = () => {
     const deg = parseInt(b.dataset.dir, 10);
-    if (deg === 90) { toast('90° 打印方向：预览已旋转，打印机按 0° 输出'); }
     setPrintDirection(deg);
   };
 });
@@ -3547,11 +3576,16 @@ async function addPrintLog(type, opts) {
 async function doRawPrint(testPage) {
   const printerName = $('#printerSelect').value;
   if (!printerName) { toast('请先选择标签打印机'); return; }
-  const paper = printPaper();
+  let paper = printPaper();
   const copies = Math.max(1, parseInt($('#printCopies').value) || 1);
   const density = Math.max(0, Math.min(15, parseInt($('#printDensity').value) || 8));
   const corr = printCorrections();
   const records = testPage ? [null] : buildRecords();
+  // 90°/270° turns the label sideways: swap paper size so SIZE, the rotated
+  // bitmap and the preview all agree.
+  if (corr.rotate === 90 || corr.rotate === 270) {
+    paper = { widthMm: paper.heightMm, heightMm: paper.widthMm, gapMm: paper.gapMm };
+  }
   toast('正在生成位图…');
   try {
     const bitmaps = records.map(rec => {
