@@ -1442,6 +1442,12 @@ document.addEventListener('keydown', (ev) => {
   if (mod && key === 'w') { ev.preventDefault(); if (activeTabId) closeTab(activeTabId); return; }
   if (mod && key === 'z') { ev.preventDefault(); ev.shiftKey ? redo() : undo(); return; }
   if (mod && key === 'y') { ev.preventDefault(); redo(); return; }
+  // While typing in a field, Ctrl+C/V/A must keep their native text-editing
+  // meaning (copy/paste/select-all the text), not the canvas element actions.
+  if (typing) {
+    if (mod && key === 's') { ev.preventDefault(); closeInlineEdit(true); saveDocFlow(); return; }
+    return;
+  }
   if (mod && key === 'd') { ev.preventDefault(); duplicate(); return; }
   if (mod && key === 'c') { ev.preventDefault(); copySelected(); return; }
   if (mod && key === 'v') { ev.preventDefault(); pasteClipboard(); return; }
