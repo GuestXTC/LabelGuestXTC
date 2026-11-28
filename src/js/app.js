@@ -166,13 +166,16 @@ function render(ctx2, targetDoc, scale, opts = {}) {
     for (let y = 0; y <= targetDoc.height; y += gridSize) { ctx2.moveTo(0, y); ctx2.lineTo(targetDoc.width, y); }
     ctx2.stroke();
   }
-  // Blackout regions are backgrounds: draw them first regardless of array
-  // order, so text placed over them is never covered by a late black block.
-  const blackouts = targetDoc.elements.filter(e => e.type === 'blackout' && !e.hidden);
-  for (const b of blackouts) drawElement(ctx2, b, scale, { forExport, record, batchEnabled });
+  // Blackout regions and tables are backgrounds: draw them first regardless
+  // of array order, so text/codes/shapes paint on top of dark blocks and of
+  // the table grid lines. This keeps tables visually at the bottom layer even
+  // if their data order is disturbed (e.g. layer move, paste, old files).
+  const backgrounds = targetDoc.elements.filter(e => !e.hidden && (e.type === 'blackout' || e.type === 'table'))
+    .sort((a, b) => (a.type === 'blackout' ? 0 : 1) - (b.type === 'blackout' ? 0 : 1));
+  for (const b of backgrounds) drawElement(ctx2, b, scale, { forExport, record, batchEnabled });
 
   for (const el of targetDoc.elements) {
-    if (el.hidden || el.type === 'blackout') continue; // blackouts drawn above
+    if (el.hidden || el.type === 'blackout' || el.type === 'table') continue; // backgrounds drawn above
     if (!forExport && elementOverflows(el, targetDoc)) {
       // Overflowing elements: draw inside page normally, and the overflowing
       // part semi-transparent so it is clearly "outside the printable area".
@@ -1999,7 +2002,9 @@ function addElementByType(type, format) {
   if (type === 'barcode' && format) el.format = format;
   el.x = Math.max(2, (doc.width - el.w) / 2);
   el.y = Math.max(2, (doc.height - el.h) / 2);
-  doc.elements.push(el);
+  // Tables are background frames: insert at the bottom of the stack.
+  if (type === 'table') doc.elements.unshift(el);
+  else doc.elements.push(el);
   selectedId = el.id; selectedIds = [el.id];
   commit(); refreshAll();
 }
@@ -2402,6 +2407,14 @@ function normalizeDoc(d) {
       e.cells = map;
     }
   });
+  // Tables are backgrounds: keep them at the bottom of the layer stack so
+  // text/codes/shapes always paint on top of the grid lines. Array order
+  // == paint order (render) and reversed == layer panel, so first = bottom.
+  const tables = d.elements.filter(e => e.type === 'table');
+  if (tables.length) {
+    const rest = d.elements.filter(e => e.type !== 'table');
+    d.elements = tables.concat(rest);
+  }
   return d;
 }
 
