@@ -2370,8 +2370,9 @@ async function saveAsFlow() {
   toast('已另存为 ' + r.type.toUpperCase() + ': ' + r.file);
 }
 
-// "导入" is the only path that reads .ddl; imported docs save as .xtc.
-$('#btnImportJson').onclick = () => importDocument();
+// "导入" shares the same content-based loader as "打开", so it accepts
+// both .ddl and .xtc and records the file path for overwrite-save.
+$('#btnImportJson').onclick = () => openDocument();
 
 function applyDoc(newDoc, file) {
   openDocInTab(newDoc, file);
@@ -2715,16 +2716,12 @@ function loadFromOpenResult(r, isImport) {
     // of the generic ".ddl import" placeholder set by parseDDL.
     const base = String(r.path || '').split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
     if (base) res.doc.name = base;
-    // DDL is import-only: never keep it as the save target, otherwise Ctrl+S
-    // would try to overwrite the source .ddl. Imported docs save as .xtc.
-    const file = (res.type === 'ddl') ? null : { path: r.path, type: res.type };
-    applyDoc(res.doc, file);
+    applyDoc(res.doc, { path: r.path, type: res.type });
     promptOnOpenFields();
     const n = res.doc.elements.length;
     const name = String(r.path || '').split(/[\\/]/).pop();
-    const verb = isImport || res.type === 'ddl' ? '已导入' : '已打开';
-    if (n) toast(verb + ' ' + name + '：' + n + ' 个元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
-    else toast(verb + ' 文件，但未识别到可编辑元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
+    if (n) toast('已打开 ' + name + '：' + n + ' 个元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
+    else toast('文件已打开，但未识别到可编辑元素（' + res.doc.width + '×' + res.doc.height + 'mm）');
   } catch (e) {
     toast('打开失败：' + e.message);
     const ci = $('#cursorInfo'); if (ci) ci.textContent = '打开失败：' + e.message;
@@ -2742,19 +2739,6 @@ async function openDocument() {
     }
   } catch (e) { toast('打开失败：' + e.message); return; }
   loadFromOpenResult(r);
-}
-
-// Import is the ONLY way to bring a .ddl into the editor.
-async function importDocument() {
-  let r = null;
-  try {
-    if (api && api.file && api.file.importFile) r = await api.file.importFile();
-    else if (api && api.ddl && api.ddl.open) {
-      const d = await api.ddl.open();
-      if (d) r = Object.assign({}, d, { text: d.text != null ? d.text : d.xml });
-    }
-  } catch (e) { toast('导入失败：' + e.message); return; }
-  loadFromOpenResult(r, true);
 }
 
 $('#btnOpenDdl').onclick = () => openDocument();

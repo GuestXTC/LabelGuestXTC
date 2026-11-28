@@ -8,7 +8,6 @@ const api = {
   },
   file: {
     openAny: () => ipcRenderer.invoke('file:open-any'),
-    importFile: () => ipcRenderer.invoke('file:import'),
     read: (filePath) => ipcRenderer.invoke('file:read', filePath),
     saveTo: (filePath, content) => ipcRenderer.invoke('file:save-to', { path: filePath, content }),
     saveAs: (name, doc, ddlXml, defaultType) => ipcRenderer.invoke('file:save-as', { name, doc, ddlXml, defaultType }),
