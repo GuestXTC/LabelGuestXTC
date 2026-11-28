@@ -135,8 +135,24 @@ function computeEditorPad() {
   const s = scaleFactor();
   // One full viewport of workspace on each side ("100% 满屏"), never less than
   // the minimum so tiny windows still leave room for overflowing elements.
-  return Math.max(MIN_EDITOR_PAD_MM,
+  let padMM = Math.max(MIN_EDITOR_PAD_MM,
     Math.ceil(sc.clientWidth / s), Math.ceil(sc.clientHeight / s));
+  // Large displays (4K/5K) would otherwise allocate a huge canvas: the pad adds
+  // two extra viewports in each direction. Cap total pixels and, if exceeded,
+  // shrink the pad (never below the minimum) so the canvas stays responsive.
+  const MAX_CANVAS_PX = 20e6; // ~80 MB RGBA — enough to still fill the viewport
+  const dw = doc.width * s, dh = doc.height * s;
+  let padPx = padMM * s;
+  if ((dw + 2 * padPx) * (dh + 2 * padPx) > MAX_CANVAS_PX) {
+    // Solve (dw+2p)(dh+2p) = MAX for p (positive root).
+    const A = 4, B = 2 * (dw + dh), C = dw * dh - MAX_CANVAS_PX;
+    const disc = B * B - 4 * A * C;
+    const p = disc > 0 ? (-B + Math.sqrt(disc)) / (2 * A) : FIT_PAD_MM * s;
+    // At extreme zoom the label alone is large; allow the margin to shrink down
+    // to the fit margin so the canvas stays bounded.
+    padMM = Math.max(FIT_PAD_MM, Math.floor(p / s));
+  }
+  return padMM;
 }
 
 function resizeCanvas() {
@@ -422,11 +438,15 @@ function tableCtxAction(act) {
     el.rows = (el.rows || 1) + 1;
     const rr = tableRatios(el, 'row'); rr.splice(at, 0, rr[Math.max(0, at - 1)] || 1); el.rowRatios = rr;
     tableShiftCellText(el, 'row', at, 1);
+    // Merges at or below the insertion point must move down with their rows.
+    el.merges = tableMerges(el).map(m => m.r >= at ? Object.assign({}, m, { r: m.r + 1 }) : m);
   } else if (act === 'insertColLeft' || act === 'insertColRight') {
     const at = act === 'insertColLeft' ? c : c + 1;
     el.cols = (el.cols || 1) + 1;
     const cr = tableRatios(el, 'col'); cr.splice(at, 0, cr[Math.max(0, at - 1)] || 1); el.colRatios = cr;
     tableShiftCellText(el, 'col', at, 1);
+    // Merges at or right of the insertion point must move with their columns.
+    el.merges = tableMerges(el).map(m => m.c >= at ? Object.assign({}, m, { c: m.c + 1 }) : m);
   } else if (act === 'deleteRow') {
     if ((el.rows || 1) <= 1) { toast('至少保留一行'); return; }
     el.rows = el.rows - 1;
@@ -455,6 +475,9 @@ function tableCtxAction(act) {
   } else if (act === 'lockTable') {
     el.locked = !el.locked; commit(); refreshSelectionUI(); toast(el.locked ? '表格已锁定' : '表格已解锁');
   }
+  // Row/column edits must land in the undo history like every other change
+  // (merge/split/clearCell already commit themselves; this is a no-op there).
+  commit();
   renderCanvas();
 }
 function bindTableCtxMenu() {
@@ -1622,7 +1645,10 @@ function drawRulers() {
   const left = wrapRect ? (wrapRect.left - rhRect.left) + padPx : 0;
   const step = s * 10; // every 10mm
   if (step > 6) {
-    for (let mm = 0; mm <= doc.width + 10; mm += 10) {
+    // Start at the negative workspace edge (elements may sit left of the label),
+    // not at 0, so the whole visible area carries readable ticks like DLabel.
+    const startMm = Math.floor(-EDITOR_PAD_MM / 10) * 10;
+    for (let mm = startMm; mm <= doc.width + 10; mm += 10) {
       const x = left + mm * s;
       if (x < 0 || x > rhW) continue;
       c1.beginPath(); c1.moveTo(x + .5, 22); c1.lineTo(x + .5, 14); c1.stroke();
@@ -1644,7 +1670,8 @@ function drawRulers() {
   const rvRect = $('#rulerV').getBoundingClientRect();
   const top = wrapRect ? (wrapRect.top - rvRect.top) + padPx : 0;
   if (step > 6) {
-    for (let mm = 0; mm <= doc.height + 10; mm += 10) {
+    const startMm = Math.floor(-EDITOR_PAD_MM / 10) * 10;
+    for (let mm = startMm; mm <= doc.height + 10; mm += 10) {
       const y = top + mm * s;
       if (y < 0 || y > rvH) continue;
       c2.beginPath(); c2.moveTo(22, y + .5); c2.lineTo(14, y + .5); c2.stroke();
@@ -2120,8 +2147,9 @@ if ($('#btnLayers')) $('#btnLayers').onclick = () => {
 };
 
 /* ---------------- zoom ---------------- */
-// The canvas area never scrolls: zoom is capped so the whole canvas (label
-// plus the editor overflow margin) always fits inside the visible area.
+// The canvas area now scrolls (workspace is larger than the viewport), so zoom
+// may go past the fit size. MAX_ZOOM bounds how far the user can magnify.
+const MAX_ZOOM = 8;
 function maxFitZoom() {
   const sc = $('#canvasScroll');
   if (!sc || !doc) return 4;
@@ -2132,7 +2160,7 @@ function maxFitZoom() {
   return Math.max(0.2, Math.min(availW / baseW, availH / baseH));
 }
 function setZoom(z) {
-  zoom = Math.max(0.2, Math.min(maxFitZoom(), z));
+  zoom = Math.max(0.2, Math.min(MAX_ZOOM, z));
   $('#zoomLabel').textContent = Math.round(zoom * 100) + '%';
   renderCanvas();
   centerLabelInView();
@@ -2154,8 +2182,10 @@ $('#zoomFit').onclick = fitZoom;
 function fitZoom() {
   setZoom(maxFitZoom());
 }
-// Keep the whole canvas visible whenever the window size changes.
-window.addEventListener('resize', () => fitZoom());
+// Window resize keeps the user's zoom level (canvas scrolls now); just
+// re-render at the same scale and keep the label centred. The "适应窗口"
+// button still snaps back to the fit size on demand.
+window.addEventListener('resize', () => { renderCanvas(); centerLabelInView(); });
 $('#showGuides').onchange = (e) => { showGuides = e.target.checked; renderCanvas(); };
 
 /* ---------------- align bar ---------------- */
@@ -2477,7 +2507,7 @@ function serializeToDDL(targetDoc) {
       // "distribute" has no dedicated code here, so it is saved as 3.
       const alignMap = { left: '0', center: '4', right: '2', justify: '3', distribute: '3' };
       const tval = e.dynamic === 'date' ? computeDynamicDate(e) : String(e.text || '');
-      L.push(`   <drawobj${base}${attr('fontfamily', e.fontFamily || '微软雅黑')}${attr('fontsize', Math.round((e.fontSize || 5) / 0.35))}${attr('fontbold', !!e.bold)}${attr('fontitalic', !!e.italic)}${attr('fontunderline', !!e.underline)}${attr('fontstrikeout', !!e.strike)}${attr('fontletterspacing', e.letterSpacing || 0)}${attr('alignment', alignMap[e.align] || '4')}${attr('itemtype', '5')}${attr('ellipse', false)}${attr('blackground', !!e.inverse)}${attr('currentdata', '1')}${attr('datasource', '0')}${attr('hormirror', false)}${attr('linespacing', e.lineSpacing || 0)}${attr('stretch', 100)}${attr('textlength', 0)}${attr('startposition', 0)}${attr('interval', 1)}>`);
+      L.push(`   <drawobj${base}${attr('fontfamily', e.fontFamily || '微软雅黑')}${attr('fontsize', Math.round((e.fontSize || 5) / 0.35))}${attr('fontbold', !!e.bold)}${attr('fontitalic', !!e.italic)}${attr('fontunderline', !!e.underline)}${attr('fontstrikeout', !!e.strike)}${attr('fontletterspacing', e.letterSpacing || 0)}${attr('alignment', alignMap[e.align] || '4')}${attr('itemtype', '5')}${attr('ellipse', false)}${attr('blackground', !!e.inverse)}${attr('currentdata', '1')}${attr('datasource', '0')}${attr('hormirror', false)}${attr('linespacing', e.lineSpacing || 0)}${attr('stretch', 100)}${attr('textlength', 0)}${attr('startposition', 0)}${attr('interval', 1)}${attr('fontcolor', e.color || '')}${attr('fontsizemm', e.fontSize || '')}>`);
       L.push('    ' + textSegments(String(tval).split('\n')));
       L.push('   </drawobj>');
       return; // text handled fully here
@@ -2491,15 +2521,21 @@ function serializeToDDL(targetDoc) {
     } else if (e.type === 'rect' || e.type === 'ellipse' || e.type === 'triangle' || e.type === 'blackout') {
       // Shapes: itemtype 2, radius>0 = ellipse. Triangle has no native
       // type here — save as a plain rect (shown as a rectangle).
-      L.push(`   <drawobj${base}${attr('itemtype', '2')}${attr('radius', e.type === 'ellipse' ? '1' : '0')}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}${attr('pattern', '0')}></drawobj>`);
+      // linecolor/fillcolor/blackout are our own extensions: DLabel ignores
+      // unknown attributes, but they let our own files round-trip without
+      // losing colours or turning a black region into a white rectangle.
+      const fillC = (e.type === 'blackout') ? (e.fill || '#000000')
+        : (e.fill && e.fill !== 'transparent' ? e.fill : '');
+      L.push(`   <drawobj${base}${attr('itemtype', '2')}${attr('radius', e.type === 'ellipse' ? '1' : '0')}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}${attr('pattern', '0')}${attr('linecolor', e.stroke || e.fill || '')}${attr('fillcolor', fillC)}${attr('blackout', e.type === 'blackout' ? '1' : '0')}></drawobj>`);
     } else if (e.type === 'line') {
-      L.push(`   <drawobj${base}${attr('itemtype', '1')}${attr('linestartx', round(e.x))}${attr('linestarty', round(e.y))}${attr('linelength', round(Math.hypot(e.w, e.h)))}${attr('linedegree', round(Math.atan2(e.h, e.w) * 180 / Math.PI))}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}></drawobj>`);
+      L.push(`   <drawobj${base}${attr('itemtype', '1')}${attr('linestartx', round(e.x))}${attr('linestarty', round(e.y))}${attr('linelength', round(Math.hypot(e.w, e.h)))}${attr('linedegree', round(Math.atan2(e.h, e.w) * 180 / Math.PI))}${attr('linetype', '0')}${attr('linewidth', e.strokeWidth || 0.4)}${attr('linecolor', e.stroke || '')}></drawobj>`);
     } else if (e.type === 'table' || e.type === 'excel') {
       // Emit grid cells with merge spans (crossColumns/crossRows) and real
       // per-column widths so the same layout is preserved on reopen.
       const rows = Math.max(1, e.rows || 1), cols = Math.max(1, e.cols || 1);
       const { xs, ys } = tableEdges(e);
       const merges = tableMerges(e);
+      const cellMap = e.cells || {};
       const datas = [];
       for (let r = 0; r < rows; r++) {
         const rowCells = [];
@@ -2508,6 +2544,9 @@ function serializeToDDL(targetDoc) {
           const isOrigin = mg && mg.r === r && mg.c === c;
           const cellW = round(xs[c+1] - xs[c]), cellH = round(ys[r+1] - ys[r]);
           const spanned = !!mg && !isOrigin; // covered by an origin cell
+          // Only the origin of a merged block carries text; spanned cells emit
+          // an empty entry so the importer does not create duplicate content.
+          const cellText = spanned ? '' : (cellMap[r + ',' + c] || '');
           rowCells.push(JSON.stringify({
             alignment: 1, blackGround: false,
             crossColumns: isOrigin ? mg.cs : (spanned ? 0 : 1),
@@ -2516,12 +2555,12 @@ function serializeToDDL(targetDoc) {
             itemScaleWidth: cellW, itemScaleHeight: cellH,
             itemCombineScaleWidth: isOrigin ? round(xs[c+mg.cs] - xs[c]) : cellW,
             itemCombineScaleHeight: isOrigin ? round(ys[r+mg.rs] - ys[r]) : cellH,
-            textList: [{ text: '', sourcetext: '' }]
+            textList: [{ text: cellText, sourcetext: cellText }]
           }));
         }
         datas.push('{"datas":[' + rowCells.join(',') + ']}');
       }
-      L.push(`   <drawobj${base}${attr('itemtype', '12')}${attr('row', rows)}${attr('column', cols)}${attr('tablelinewidth', e.borderWidth || 0.3)}${attr('formDataJson', '[' + datas.join(',') + ']')}></drawobj>`);
+      L.push(`   <drawobj${base}${attr('itemtype', '12')}${attr('row', rows)}${attr('column', cols)}${attr('tablelinewidth', e.borderWidth || 0.3)}${attr('cellfontsize', e.cellFontSize || 3)}${attr('cellcolor', e.cellColor || '#111111')}${attr('cellfontfamily', e.cellFontFamily || 'Microsoft YaHei')}${attr('formDataJson', '[' + datas.join(',') + ']')}></drawobj>`);
     }
   });
   L.push('  </labelobjects>');
@@ -2641,10 +2680,10 @@ function parseDDL(xmlText) {
         // Chromium can silently skip fillText with a bare CJK family name in
         // a scaled canvas context. "微软雅黑" -> "Microsoft YaHei", etc.
         text: vals.join(''), fontFamily: normalizeFontFamily(m.fontfamily),
-        fontSize: round(Math.max(2, num(m.fontsize, 10) * 0.35)),
+        fontSize: round(Math.max(2, m.fontsizemm ? num(m.fontsizemm, 5) : num(m.fontsize, 10) * 0.35)),
         bold: m.fontbold === 'true', italic: m.fontitalic === 'true',
         underline: m.fontunderline === 'true', strike: m.fontstrikeout === 'true',
-        color: '#111111', align: alignMap[m.alignment] || 'left'
+        color: m.fontcolor || '#111111', align: alignMap[m.alignment] || 'left'
       }));
     } else if (it === '8') {
       const bt = String(m.barcodetype || 'CODE128').toUpperCase();
@@ -2665,17 +2704,22 @@ function parseDDL(xmlText) {
       out.elements.push(Object.assign(common, {
         type: 'line', name: '线条', x: round(sx), y: round(sy),
         w: round(lw), h: round(lh),
-        stroke: '#111111', strokeWidth: lineW
+        stroke: m.linecolor || '#111111', strokeWidth: lineW
       }));
     } else if (it === '2') {
       const isEllipse = num(m.radius, 0) > 0;
+      const isBlackout = String(m.blackout || '') === '1' || String(m.blackout || '') === 'true';
       // DLabel colorflag=0 means no fill (outline only). A filled shape with
       // a high zvalue would cover text underneath it, which is the reason
       // some imported labels appeared to have all their text missing.
       const hasFill = m.colorflag == null ? true : num(m.colorflag, 0) > 0;
+      const explicitFill = m.fillcolor && m.fillcolor !== 'transparent' ? m.fillcolor : '';
+      const fillVal = isBlackout ? (m.fillcolor || '#000000')
+        : (explicitFill || (hasFill ? '#ffffff' : 'transparent'));
       out.elements.push(Object.assign(common, {
-        type: isEllipse ? 'ellipse' : 'rect', name: isEllipse ? '椭圆' : '矩形',
-        fill: hasFill ? '#ffffff' : 'transparent', stroke: '#111111', strokeWidth: lineW, radius: 0
+        type: isBlackout ? 'blackout' : (isEllipse ? 'ellipse' : 'rect'),
+        name: isBlackout ? '区域反黑' : (isEllipse ? '椭圆' : '矩形'),
+        fill: fillVal, stroke: m.linecolor || '#111111', strokeWidth: lineW, radius: 0
       }));
     } else if (it === '6') {
       const b64 = m.base64 || '';
@@ -2735,8 +2779,11 @@ function parseDDL(xmlText) {
         colRatios: colW || new Array(cols).fill(1), rowRatios: rowH || new Array(rows).fill(1),
         merges,
         borderWidth: Math.max(0.1, num(m.tablelinewidth, 0.3)),
-        borderColor: '#111111',
-        fontFamily: 'Microsoft YaHei', fontSize: 3.5, color: '#111111', align: 'center'
+        borderColor: m.linecolor || '#111111',
+        cellFontSize: num(m.cellfontsize, 3.5) || 3.5,
+        cellColor: m.cellcolor || '#111111',
+        cellFontFamily: m.cellfontfamily || 'Microsoft YaHei',
+        fontFamily: 'Microsoft YaHei', fontSize: 3.5, color: m.cellcolor || '#111111', align: 'center'
       }));
     } else {
       // Keep unknown objects visible instead of silently producing a blank page.
@@ -3129,17 +3176,26 @@ function renderToCanvas(record, dpi, corrections) {
   cc.fillStyle = '#ffffff'; cc.fillRect(0, 0, c.width, c.height);
   cc.save();
   if (corr) {
-    if (corr.rotate === 180) { cc.translate(c.width, c.height); cc.rotate(Math.PI); }
-    else if (quarter) {
-      cc.translate(c.width / 2, c.height / 2);
-      cc.rotate(corr.rotate * Math.PI / 180);
-      cc.translate(-cw / 2, -ch / 2);
-    }
-    if (corr.mirror) { cc.translate(c.width, 0); cc.scale(-1, 1); }
+    // Compose in the SAME order as applyCorrections() (mirror the design first,
+    // then rotate), otherwise mirror+90°/270° came out 180° apart between
+    // system printing and the TSPL preview/print.
+    cc.translate(c.width / 2, c.height / 2);
+    if (corr.rotate === 180) cc.rotate(Math.PI);
+    else if (quarter) cc.rotate(corr.rotate * Math.PI / 180);
+    if (corr.mirror) cc.scale(-1, 1);
+    cc.translate(-cw / 2, -ch / 2);
   }
   cc.imageSmoothingEnabled = true;
   cc.imageSmoothingQuality = 'high';
   cc.drawImage(base, 0, 0);
+  // System printing used to ignore the "反相" switch; invert here so the page
+  // matches the on-screen 1-bit preview (applyCorrections flips the bits).
+  if (corr && corr.invert) {
+    cc.globalCompositeOperation = 'difference';
+    cc.fillStyle = '#ffffff';
+    cc.fillRect(0, 0, c.width, c.height);
+    cc.globalCompositeOperation = 'source-over';
+  }
   cc.restore();
   return c;
 }

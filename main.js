@@ -479,15 +479,33 @@ ipcMain.handle('print:labels', async (event, payload) => {
       .label:last-child { page-break-after:auto; break-after:auto; }
       img { width:100%; height:100%; display:block; }
     </style></head><body>${items}</body></html>`;
-    printWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    // A data: URL breaks once the embedded base64 images exceed the URL limit
+    // (~2 MB), which a multi-label / multi-copy job easily exceeds — printing
+    // then failed silently. Serve the page from a temp file instead.
+    let tmpFile = null;
+    const cleanup = () => {
+      if (!tmpFile) return;
+      try { fs.unlinkSync(tmpFile); } catch (e) {}
+      tmpFile = null;
+    };
     printWin.webContents.on('did-finish-load', () => {
       setTimeout(() => {
         printWin.webContents.print({ silent: !!silent, printBackground: true }, (success, error) => {
           printWin.destroy();
+          cleanup();
           resolve({ ok: !!success, error: error || '' });
         });
       }, 300);
     });
+    try {
+      tmpFile = path.join(os.tmpdir(), 'label-print-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.html');
+      fs.writeFileSync(tmpFile, html, 'utf8');
+      printWin.loadFile(tmpFile);
+    } catch (e) {
+      // Fall back to the data URL if the temp file cannot be written.
+      tmpFile = null;
+      printWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    }
   });
 });
 
