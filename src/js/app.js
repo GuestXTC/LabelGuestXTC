@@ -3251,39 +3251,46 @@ function drawPrintPreview(bm, paper, record) {
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, wpx, hpx);
 
-  // Apply print corrections (rotation / mirror) around the paper center.
+  const rec = pcPreviewRecord;
+  const batchOn = !!(rec);
+  // ALWAYS render into an offscreen canvas at the unrotated paper size first.
+  // render() calls setTransform() internally, which would wipe any rotation
+  // applied directly to the visible canvas — so the transform must happen
+  // only in the final drawImage step below.
+  const tmp = document.createElement('canvas');
+  tmp.width = warpW; tmp.height = warpH;
+  const tc = tmp.getContext('2d');
+  tc.fillStyle = '#ffffff'; tc.fillRect(0, 0, warpW, warpH);
+  if (Math.abs(paperW - doc.width) < 0.01 && Math.abs(paperH - doc.height) < 0.01) {
+    render(tc, doc, pxPerMm, { forExport: true, record: rec, batchEnabled: batchOn });
+  } else {
+    // Render design at its own size, then scale into the paper rect (same as
+    // renderTo1Bit) so a 100×70 design shrinks to fit a 50×40 paper as 1 label.
+    const dw = Math.max(1, Math.round(doc.width * pxPerMm));
+    const dh = Math.max(1, Math.round(doc.height * pxPerMm));
+    const design = document.createElement('canvas');
+    design.width = dw; design.height = dh;
+    const dc = design.getContext('2d');
+    dc.fillStyle = '#ffffff'; dc.fillRect(0, 0, dw, dh);
+    render(dc, doc, pxPerMm, { forExport: true, record: rec, batchEnabled: batchOn });
+    tc.imageSmoothingEnabled = true;
+    tc.imageSmoothingQuality = 'high';
+    tc.drawImage(design, 0, 0, dw, dh, 0, 0, warpW, warpH);
+  }
+
+  // Now apply print corrections (rotation / mirror) in the final blit.
   ctx.save();
   if (corr.rotate === 180) { ctx.translate(wpx, hpx); ctx.rotate(Math.PI); }
   else if (quarter) {
     const cx = wpx / 2, cy = hpx / 2;
     ctx.translate(cx, cy);
     ctx.rotate(corr.rotate * Math.PI / 180);
-    // Center the unrotated content on the rotated canvas.
     ctx.translate(-warpW / 2, -warpH / 2);
   }
   if (corr.mirror) { ctx.translate(wpx, 0); ctx.scale(-1, 1); }
-
-  const rec = pcPreviewRecord;
-  const batchOn = !!(rec);
-  if (Math.abs(paperW - doc.width) < 0.01 && Math.abs(paperH - doc.height) < 0.01) {
-    render(ctx, doc, pxPerMm, { forExport: true, record: rec, batchEnabled: batchOn });
-  } else {
-    // Render design at its own size, then scale into the paper rect (same as
-    // renderTo1Bit) so a 100×70 design shrinks to fit a 50×40 paper as 1 label.
-    const dw = Math.max(1, Math.round(doc.width * pxPerMm));
-    const dh = Math.max(1, Math.round(doc.height * pxPerMm));
-    const tmp = document.createElement('canvas');
-    tmp.width = dw; tmp.height = dh;
-    const tc = tmp.getContext('2d');
-    tc.fillStyle = '#ffffff'; tc.fillRect(0, 0, dw, dh);
-    render(tc, doc, pxPerMm, { forExport: true, record: rec, batchEnabled: batchOn });
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    // Draw into the UNROTATED paper rect (warpW×warpH); the rotation transform
-    // maps it onto the swapped canvas. Using wpx/hpx here would overshoot and
-    // clip the content on 90°/270°.
-    ctx.drawImage(tmp, 0, 0, dw, dh, 0, 0, warpW, warpH);
-  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(tmp, 0, 0);
   ctx.restore();
 
   if (corr.invert) {
